@@ -18,7 +18,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { Flavor } from "@/lib/model";
-import { identity, descriptions } from "@/lib/flavor-identity";
+import {
+  identity,
+  descriptions,
+  flavorIndex,
+  flavorImages,
+} from "@/lib/flavor-identity";
 export const foodIcons = {
   Beef,
   Flame,
@@ -37,29 +42,34 @@ export function FoodFace({
   flavor,
   index,
   large = false,
+  shared = true,
 }: {
   flavor: Flavor;
   index: number;
   large?: boolean;
+  shared?: boolean;
 }) {
-  const style = identity(index),
+  const style = identity(flavorIndex(flavor.id, index)),
     Icon = foodIcons[style.icon as keyof typeof foodIcons];
   return (
     <motion.div
-      layoutId={"face-" + flavor.id}
+      layoutId={shared ? "face-" + flavor.id : undefined}
       className={`foodface${large ? " large" : ""}`}
       style={{ backgroundColor: style.tint, color: style.accent }}
     >
-      {index === 4 ? (
+      {flavorImages[flavor.id] ? (
         <img
-          src="/images/pastel.png"
-          alt="Pastel de carne com queijo, imagem ilustrativa"
+          src={"/images/sabores/" + flavorImages[flavor.id] + ".webp"}
+          width="900"
+          height="900"
+          loading="lazy"
+          alt={"Pastel de " + flavor.name + ", imagem ilustrativa"}
         />
       ) : (
         <Icon strokeWidth={1.3} className="ingredienticon" />
       )}
       <motion.span
-        layoutId={"seal-" + flavor.id}
+        layoutId={shared ? "seal-" + flavor.id : undefined}
         className="flavorseal"
         style={{ background: style.accent }}
       >
@@ -85,7 +95,7 @@ export function FoodCard({
   locked?: boolean;
   onClick: () => void;
 }) {
-  const style = identity(index);
+  const style = identity(flavorIndex(flavor.id, index));
   return (
     <motion.button
       type="button"
@@ -109,7 +119,7 @@ export function FoodCard({
             <LockKeyhole size={15} className="muted" />
           ) : null}
         </div>
-        <p>{descriptions[index] || flavor.name}</p>
+        <p>{descriptions[flavorIndex(flavor.id, index)] || flavor.name}</p>
         <div className="foodbottom">
           <div>
             <strong>{value}</strong>

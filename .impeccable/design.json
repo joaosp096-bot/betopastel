@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-15T00:15:16.480862Z",
+  "generatedAt": "2026-10-15T19:01:28.786852Z",
   "title": "Design System: Beto Pastel",
   "extensions": {
     "colorMeta": {
@@ -325,6 +325,76 @@
           "oklch(84% 0.0165 26.65)",
           "oklch(95% 0.0165 26.65)"
         ]
+      },
+      "weekly-warning": {
+        "role": "semantic",
+        "displayName": "Âmbar de estado semanal",
+        "tonalRamp": [
+          "oklch(15% 0.0911 77.07)",
+          "oklch(26% 0.0911 77.07)",
+          "oklch(38% 0.0911 77.07)",
+          "oklch(49% 0.0911 77.07)",
+          "oklch(61% 0.0911 77.07)",
+          "oklch(72% 0.0911 77.07)",
+          "oklch(84% 0.0911 77.07)",
+          "oklch(95% 0.0911 77.07)"
+        ]
+      },
+      "weekly-warning-tint": {
+        "role": "semantic",
+        "displayName": "Tinta de pendência semanal",
+        "tonalRamp": [
+          "oklch(15% 0.0444 87.19)",
+          "oklch(26% 0.0444 87.19)",
+          "oklch(38% 0.0444 87.19)",
+          "oklch(49% 0.0444 87.19)",
+          "oklch(61% 0.0444 87.19)",
+          "oklch(72% 0.0444 87.19)",
+          "oklch(84% 0.0444 87.19)",
+          "oklch(95% 0.0444 87.19)"
+        ]
+      },
+      "weekly-notice-ink": {
+        "role": "semantic",
+        "displayName": "Tinta de aviso semanal",
+        "tonalRamp": [
+          "oklch(15% 0.0826 76.89)",
+          "oklch(26% 0.0826 76.89)",
+          "oklch(38% 0.0826 76.89)",
+          "oklch(49% 0.0826 76.89)",
+          "oklch(61% 0.0826 76.89)",
+          "oklch(72% 0.0826 76.89)",
+          "oklch(84% 0.0826 76.89)",
+          "oklch(95% 0.0826 76.89)"
+        ]
+      },
+      "weekly-success-tint": {
+        "role": "semantic",
+        "displayName": "Tinta de conclusão semanal",
+        "tonalRamp": [
+          "oklch(15% 0.0182 155.81)",
+          "oklch(26% 0.0182 155.81)",
+          "oklch(38% 0.0182 155.81)",
+          "oklch(49% 0.0182 155.81)",
+          "oklch(61% 0.0182 155.81)",
+          "oklch(72% 0.0182 155.81)",
+          "oklch(84% 0.0182 155.81)",
+          "oklch(95% 0.0182 155.81)"
+        ]
+      },
+      "leftover-series": {
+        "role": "semantic",
+        "displayName": "Âmbar de sobras no comparativo",
+        "tonalRamp": [
+          "oklch(15% 0.1307 80.88)",
+          "oklch(26% 0.1307 80.88)",
+          "oklch(38% 0.1307 80.88)",
+          "oklch(49% 0.1307 80.88)",
+          "oklch(61% 0.1307 80.88)",
+          "oklch(72% 0.1307 80.88)",
+          "oklch(84% 0.1307 80.88)",
+          "oklch(95% 0.1307 80.88)"
+        ]
       }
     },
     "typographyMeta": {
@@ -363,6 +433,18 @@
       "quantity": {
         "displayName": "Contagem",
         "purpose": "Valor central do controle de quantidade, com números tabulares."
+      },
+      "next-work": {
+        "displayName": "Próximo trabalho",
+        "purpose": "Título da faixa de próximo trabalho, com redução própria no celular."
+      },
+      "weekly-metric": {
+        "displayName": "Métrica semanal",
+        "purpose": "Valor em destaque junto da unidade e da completude do registro."
+      },
+      "detail": {
+        "displayName": "Detalhe compacto",
+        "purpose": "Datas, unidades e contexto recorrente nas listas semanais."
       }
     },
     "shadows": [
@@ -407,12 +489,21 @@
         "name": "task-exit",
         "value": "0.18s",
         "purpose": "Saída da tarefa; duração zero quando movimento reduzido está ativo."
+      },
+      {
+        "name": "area-opacity",
+        "value": "opacity 180ms ease-out",
+        "purpose": "Conteúdo abaixo do cabeçalho passa de opacity .72 a 1 ao trocar de área; cabeçalho e navegação ficam estáveis. Movimento reduzido pula a transição."
       }
     ],
     "breakpoints": [
       {
         "name": "narrow-max",
         "value": "360px"
+      },
+      {
+        "name": "weekly-mobile-max",
+        "value": "640px"
       },
       {
         "name": "mobile-max",
@@ -423,8 +514,16 @@
         "value": "900px"
       },
       {
+        "name": "production-single-column-max",
+        "value": "1100px"
+      },
+      {
         "name": "compact-desktop-max",
         "value": "1250px"
+      },
+      {
+        "name": "header-wrap-max",
+        "value": "1280px"
       },
       {
         "name": "wide-catalog-min",
@@ -474,17 +573,17 @@
       "refersTo": "navigation-item"
     },
     {
-      "name": "Etiqueta de estado",
+      "name": "Estados da semana",
       "kind": "chip",
-      "description": "Estado neutro textual de conferência.",
-      "html": "<span class=\"ds-status\">Conferir carga</span>",
-      "css": ".ds-status{font-family:Lato,Arial,sans-serif;display:inline-flex;font-size:13px;font-weight:700;line-height:1.35;padding:6px 9px;border-radius:6px;color:#465560;background:#eef1f4;}",
-      "refersTo": "status-neutral"
+      "description": "Pendência escrita em âmbar; confirmação escrita com check e verde. O estado neutro incumbente continua disponível.",
+      "html": "<div class=\"ds-statuses\"><span class=\"ds-status\">Conferir carga</span><span class=\"ds-weekstatus\">A registrar</span><span class=\"ds-weekstatus ds-done\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>Produção confirmada</span></div>",
+      "css": ".ds-statuses{font-family:Lato,Arial,sans-serif;display:flex;align-items:center;flex-wrap:wrap;gap:8px;}.ds-status{display:inline-flex;font-size:13px;font-weight:700;line-height:1.35;padding:6px 9px;border-radius:6px;color:#465560;background:#eef1f4;}.ds-weekstatus{display:inline-flex;align-items:center;gap:3px;font-size:11px;line-height:1.5;font-weight:700;color:#76520f;background:#fff1d1;padding:5px 8px;border-radius:6px;white-space:nowrap;}.ds-done{color:var(--success,#216647);background:#e5f2e9;}",
+      "refersTo": "weekly-status-pending"
     },
     {
       "name": "Card de sabor",
       "kind": "card",
-      "description": "Botão inteiro com a identidade de frango com catupiry preservada.",
+      "description": "Fallback SVG de um sabor sem imagem. Os 18 sabores ativos usam WebP ilustrativo associado por ID, mantendo nome, selo e cor na tarefa.",
       "html": "<button class=\"ds-foodcard\" type=\"button\"><span class=\"ds-foodface\"><span class=\"ds-seal\">catupiry</span><svg width=\"64\" height=\"64\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2 12h20\"/><path d=\"M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8\"/><path d=\"m4 8 16-4\"/><path d=\"m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8\"/></svg></span><span class=\"ds-cardbody\"><span class=\"ds-cardtitle\">Frango com catupiry</span><span class=\"ds-carddescription\">Frango e catupiry</span><span class=\"ds-cardbottom\"><span><strong>0</strong><span class=\"ds-carddetail\">produzidos na base</span></span><span class=\"ds-cardopen\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></span></span></span></button>",
       "css": ".ds-foodcard{font-family:Lato,Arial,sans-serif;background:#fff;color:var(--foreground,#20272d);border:1px solid var(--border,#dce1e6);border-top:2px solid #884106;border-radius:12px;overflow:hidden;text-align:left;min-width:0;width:100%;padding:0;cursor:pointer;transition:box-shadow .2s,border-color .2s;}.ds-foodcard:hover{border-color:#8d9aa5;box-shadow:0 5px 18px -8px #20303d25;}.ds-foodcard:focus-visible{outline:3px solid var(--focus,#c92029);outline-offset:3px;}.ds-foodcard:active{transform:scale(.98);}.ds-foodface{height:145px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff1d8;color:#884106;}.ds-seal{position:absolute;left:12px;top:12px;color:#fff;background:#884106;font-size:12px;line-height:1.2;font-weight:700;padding:5px 7px;border-radius:5px;}.ds-cardbody{display:block;padding:18px 16px;}.ds-cardtitle{display:block;min-height:48px;font-size:17px;font-weight:700;line-height:1.35;letter-spacing:-.01em;overflow-wrap:anywhere;}.ds-carddescription{display:block;font-size:13px;line-height:1.5;color:#56616b;min-height:40px;margin:8px 0 18px;}.ds-cardbottom{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:13px;border-top:1px solid var(--border,#dce1e6);}.ds-cardbottom strong{display:block;font-size:25px;font-weight:900;line-height:1.3;font-variant-numeric:tabular-nums;}.ds-carddetail{display:block;font-size:12px;line-height:1.5;color:#56616b;margin-top:3px;}.ds-cardopen{height:32px;width:32px;border-radius:7px;display:grid;place-items:center;background:#f4f6f8;color:#884106;}@media(prefers-reduced-motion:reduce){.ds-foodcard{transition:none;}.ds-foodcard:active{transform:none;}}",
       "refersTo": "food-card"
@@ -498,21 +597,31 @@
       "refersTo": "quantity-control"
     },
     {
-      "name": "Etapas da tarefa",
+      "name": "Agenda semanal",
       "kind": "custom",
-      "description": "Etapa concluída, atual e futura usam símbolo, texto e cor.",
-      "html": "<div class=\"ds-microtimeline\" aria-label=\"Progresso da tarefa\"><span class=\"ds-microitem ds-complete\"><i><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></i>Contagem</span><span class=\"ds-microitem ds-current\" aria-current=\"step\"><i>2</i>Separação</span><span class=\"ds-microitem\"><i>3</i>Registrado</span></div>",
-      "css": ".ds-microtimeline{font-family:Lato,Arial,sans-serif;display:flex;gap:24px;}.ds-microitem{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.5;color:#56616b;}.ds-microitem i{font-style:normal;display:grid;place-items:center;width:24px;height:24px;border:1px solid #aeb8c2;border-radius:50%;font-size:12px;background:#fff;}.ds-current{color:#a81b25;font-weight:700;}.ds-current i{border-color:#a81b25;background:#fff0f1;}.ds-complete{color:#216647;}.ds-complete i{background:#216647;border-color:#216647;color:#fff;}"
+      "refersTo": "weekly-agenda-item",
+      "description": "Nome e data em botões alinhados entre divisórias; quatro colunas, duas no celular. O app acrescenta ícone e check quando confirmado.",
+      "html": "<nav class=\"ds-weekpath\" aria-label=\"Rotina da semana\"><button type=\"button\"><span><strong>Produção</strong><small>Quarta ou quinta</small></span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button><button type=\"button\"><span><strong>Amarais</strong><small>Sexta</small></span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button><button type=\"button\"><span><strong>Nova Odessa</strong><small>Sábado</small></span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button><button type=\"button\"><span><strong>Morungaba</strong><small>Domingo</small></span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button></nav>",
+      "css": ".ds-weekpath{font-family:Lato,Arial,sans-serif;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-block:1px solid var(--border,#dce1e6);}.ds-weekpath button{display:flex;align-items:center;gap:10px;min-width:0;min-height:76px;text-align:left;padding:13px 10px;border:0;background:transparent;color:var(--foreground,#20272d);cursor:pointer;transition:background .15s ease;}.ds-weekpath button:hover{background:var(--card,#fff);}.ds-weekpath button:focus-visible{outline:3px solid var(--focus,#c92029);outline-offset:3px;}.ds-weekpath button:active{transform:translateY(1px);}.ds-weekpath button>span{min-width:0;}.ds-weekpath strong,.ds-weekpath small{display:block;}.ds-weekpath strong{font-size:14px;line-height:1.5;}.ds-weekpath small{font-size:12px;line-height:1.5;color:var(--muted-foreground,#56616b);margin-top:4px;}.ds-weekpath svg{flex-shrink:0;margin-left:auto;}@media(max-width:640px){.ds-weekpath{grid-template-columns:repeat(2,minmax(0,1fr));}.ds-weekpath button{min-height:64px;padding:10px 4px;gap:9px;}.ds-weekpath button:nth-child(-n+2){border-bottom:1px solid var(--border,#dce1e6);}.ds-weekpath strong{font-size:13px;}}@media(prefers-reduced-motion:reduce){.ds-weekpath button{transition:none;}}"
+    },
+    {
+      "name": "Abas do financeiro",
+      "kind": "nav",
+      "refersTo": "finance-tab",
+      "description": "Resumo, Caixa e Gastos com seleção textual e sublinhado vermelho; conteúdo permanece montado entre abas.",
+      "html": "<div class=\"ds-financetabs\" role=\"tablist\" aria-label=\"Áreas do financeiro\"><button type=\"button\" role=\"tab\" aria-selected=\"true\">Resumo</button><button type=\"button\" role=\"tab\" aria-selected=\"false\">Caixa</button><button type=\"button\" role=\"tab\" aria-selected=\"false\">Gastos</button></div>",
+      "css": ".ds-financetabs{font-family:Lato,Arial,sans-serif;display:flex;gap:24px;border-bottom:1px solid var(--border,#dce1e6);margin-bottom:25px;}.ds-financetabs button{font-family:inherit;padding:10px 0 15px;min-height:44px;color:var(--muted-foreground,#56616b);font-size:14px;line-height:1.5;background:transparent;border:0;border-bottom:2px solid transparent;cursor:pointer;transition:background-color .15s,color .15s,transform .15s;}.ds-financetabs button[aria-selected=\"true\"]{color:var(--primary,#c92029);font-weight:900;border-bottom-color:var(--primary,#c92029);}.ds-financetabs button:focus-visible{outline:3px solid var(--focus,#c92029);outline-offset:3px;}.ds-financetabs button:active{transform:translateY(1px);}@media(prefers-reduced-motion:reduce){.ds-financetabs button{transition:none;}}"
     }
   ],
   "narrative": {
     "northStar": "O cardápio da equipe da feira",
-    "overview": "A identidade reúne o vermelho do trailer, o preto do avental e o branco do boné. A interface tem títulos fortes, controles familiares e superfícies claras para a equipe reconhecer o próximo registro. A referência de cardápio e navegação do iFood se traduz em sabores reconhecíveis e ações acessíveis no celular; este sistema descreve a implementação própria do Beto Pastel.\n\nA densidade é de uma ferramenta de operação: números legíveis, contexto próximo dos campos e estados explícitos. Nome, selo, cor e ícone mantêm o sabor reconhecível entre catálogo e tarefa. O movimento liga esses estados, enquanto o formulário continua sendo o centro da leitura.",
+    "overview": "A identidade reúne o vermelho do trailer, o preto do avental e o branco do boné. A interface tem títulos fortes, controles familiares e superfícies claras para a equipe reconhecer o próximo registro. A referência de cardápio e navegação do iFood se traduz em sabores reconhecíveis e ações acessíveis no celular; este sistema descreve a implementação própria do Beto Pastel.\n\nA densidade é de uma ferramenta de operação: números legíveis, contexto próximo dos campos e estados explícitos. Nome, imagem ilustrativa, cor e selo mantêm o sabor reconhecível; o ícone de ingrediente é o fallback quando não há imagem. Listas e tabelas aproximam informações relacionadas sem cercar cada dado de um card. O movimento liga estados, enquanto conteúdo e formulário continuam sendo o centro da leitura.\n\nEsta edição incorpora a evolução semanal aprovada em (15/10/2026), extraída do código e das capturas revisadas. Preserva o mundo existente; a referência iFood orienta reconhecimento e acesso à tarefa, sem compromisso de reprodução visual. A composição de cada página permanece no contrato de superfície, fora das regras globais.",
     "keyCharacteristics": [
       "Vermelho para ação e navegação selecionada; carvão para estrutura.",
       "Lato hospedada no projeto, títulos pesados e números tabulares.",
       "Superfícies brancas, bordas leves e profundidade contida.",
       "Identidade de sabor preservada ao abrir a tarefa.",
+      "Contexto de cobertura junto dos números e distinção visual entre previsão e registro.",
       "Controles com áreas de toque generosas e foco visível."
     ],
     "rules": [
@@ -533,21 +642,24 @@
       }
     ],
     "dos": [
-      "**Do** preserve nome, cor, selo e ícone do sabor entre o card e a tarefa.",
+      "**Do** preserve nome, cor, imagem e identidade do sabor pelo ID entre lista, card e tarefa; use o ícone como fallback.",
       "**Do** use vermelho para ação/seleção e estados semânticos com texto ou ícone explícito.",
       "**Do** mantenha o título antes do contexto e os rótulos próximos dos campos.",
       "**Do** mantenha superfícies planas em repouso, foco visível e áreas de toque de pelo menos (44px).",
       "**Do** use algarismos tabulares em quantidades, totais e valores financeiros.",
       "**Do** adapte a separação para uma coluna em telas estreitas e reserve espaço para a navegação fixa.",
-      "**Do** respeite movimento reduzido e preserve os campos ao apresentar erros ou novo acesso."
+      "**Do** respeite movimento reduzido e preserve os campos ao apresentar erros ou novo acesso.",
+      "**Do** mantenha completude, unidade e ressalvas próximas do número, com previsão e confirmação nomeadas.",
+      "**Do** mantenha a nota opcional visível e os erros de anexo separados do resultado de salvar o gasto."
     ],
     "donts": [
       "**Don't** transforme datas, estados ou contexto de preparo em eyebrows decorativos.",
       "**Don't** misture as cores de identidade do catálogo com os significados de erro e confirmação.",
       "**Don't** use uma sombra dura deslocada em superfícies deste sistema.",
       "**Don't** substitua os SVG de traço por caracteres tipográficos como ícones.",
-      "**Don't** trate a imagem ilustrativa existente como fotografia específica de todos os sabores.",
-      "**Don't** mostre uma confirmação visual antes da resposta de sucesso do registro."
+      "**Don't** apresente ilustrações geradas como fotos reais do estabelecimento ou troque o recheio por uma imagem genérica de outro sabor.",
+      "**Don't** mostre uma confirmação visual antes da resposta de sucesso do registro.",
+      "**Don't** transforme valores, horários ou nomes sintéticos de QA em conteúdo padrão do negócio."
     ]
   }
 }

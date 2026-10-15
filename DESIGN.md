@@ -25,6 +25,11 @@ colors:
   warning-tint: "#fff3d5"
   error: "#a31d15"
   error-tint: "#fff0ee"
+  weekly-warning: "#76520f"
+  weekly-warning-tint: "#fff1d1"
+  weekly-notice-ink: "#67470c"
+  weekly-success-tint: "#e5f2e9"
+  leftover-series: "#dca843"
 typography:
   display:
     fontFamily: "Lato, Arial, sans-serif"
@@ -74,12 +79,30 @@ typography:
     fontSize: "36px"
     fontWeight: 900
     lineHeight: 1.5
+  next-work:
+    fontFamily: "Lato, Arial, sans-serif"
+    fontSize: "clamp(25px, 2.6vw, 36px)"
+    fontWeight: 900
+    lineHeight: 1.12
+    letterSpacing: "-0.03em"
+  weekly-metric:
+    fontFamily: "Lato, Arial, sans-serif"
+    fontSize: "clamp(24px, 2.5vw, 34px)"
+    fontWeight: 900
+    lineHeight: 1.2
+    letterSpacing: "-0.025em"
+  detail:
+    fontFamily: "Lato, Arial, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.5
 rounded:
   compact: "6px"
   control: "8px"
   selection: "10px"
   surface: "12px"
   dialog: "14px"
+  feature: "16px"
 spacing:
   compact: "8px"
   related: "12px"
@@ -136,6 +159,46 @@ components:
     textColor: "{colors.foreground}"
     rounded: "{rounded.selection}"
     height: "76px"
+  next-work:
+    backgroundColor: "{colors.card}"
+    rounded: "{rounded.feature}"
+  next-work-title:
+    textColor: "{colors.primary}"
+    typography: "{typography.next-work}"
+  weekly-status-pending:
+    backgroundColor: "{colors.weekly-warning-tint}"
+    textColor: "{colors.weekly-warning}"
+    rounded: "{rounded.compact}"
+    padding: "5px 8px"
+  weekly-status-done:
+    backgroundColor: "{colors.weekly-success-tint}"
+    textColor: "{colors.success}"
+    rounded: "{rounded.compact}"
+    padding: "5px 8px"
+  weekly-notice:
+    backgroundColor: "{colors.weekly-warning-tint}"
+    textColor: "{colors.weekly-notice-ink}"
+    rounded: "{rounded.surface}"
+    padding: "18px 20px"
+  weekly-metric:
+    textColor: "{colors.foreground}"
+    typography: "{typography.weekly-metric}"
+  weekly-agenda-item:
+    textColor: "{colors.foreground}"
+    padding: "13px 10px"
+  finance-tab:
+    textColor: "{colors.muted-foreground}"
+    padding: "10px 0 15px"
+  finance-tab-active:
+    textColor: "{colors.primary}"
+  receipt-control:
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.selection}"
+    padding: "10px"
+  history-record:
+    backgroundColor: "{colors.card}"
+    rounded: "{rounded.surface}"
+    padding: "18px"
 ---
 
 # Design System: Beto Pastel
@@ -146,13 +209,16 @@ components:
 
 A identidade reúne o vermelho do trailer, o preto do avental e o branco do boné. A interface tem títulos fortes, controles familiares e superfícies claras para a equipe reconhecer o próximo registro. A referência de cardápio e navegação do iFood se traduz em sabores reconhecíveis e ações acessíveis no celular; este sistema descreve a implementação própria do Beto Pastel.
 
-A densidade é de uma ferramenta de operação: números legíveis, contexto próximo dos campos e estados explícitos. Nome, selo, cor e ícone mantêm o sabor reconhecível entre catálogo e tarefa. O movimento liga esses estados, enquanto o formulário continua sendo o centro da leitura.
+A densidade é de uma ferramenta de operação: números legíveis, contexto próximo dos campos e estados explícitos. Nome, imagem ilustrativa, cor e selo mantêm o sabor reconhecível; o ícone de ingrediente é o fallback quando não há imagem. Listas e tabelas aproximam informações relacionadas sem cercar cada dado de um card. O movimento liga estados, enquanto conteúdo e formulário continuam sendo o centro da leitura.
+
+Esta edição incorpora a evolução semanal aprovada em (15/10/2026), extraída do código e das capturas revisadas. Preserva o mundo existente; a referência iFood orienta reconhecimento e acesso à tarefa, sem compromisso de reprodução visual. A composição de cada página permanece no contrato de superfície, fora das regras globais.
 
 **Key Characteristics:**
 - Vermelho para ação e navegação selecionada; carvão para estrutura.
 - Lato hospedada no projeto, títulos pesados e números tabulares.
 - Superfícies brancas, bordas leves e profundidade contida.
 - Identidade de sabor preservada ao abrir a tarefa.
+- Contexto de cobertura junto dos números e distinção visual entre previsão e registro.
 - Controles com áreas de toque generosas e foco visível.
 
 ## Colors
@@ -176,9 +242,11 @@ O vermelho é direto e reconhecível; os neutros frios sustentam a leitura e as 
 
 Verde (`success`, `success-tint`) indica confirmação e retorno registrado; âmbar (`warning`, `warning-tint`) pede conferência; vermelho de erro (`error`, `error-tint`) acompanha mensagens inline. Esses papéis são semânticos, não uma segunda marca.
 
+Na gestão semanal, `weekly-warning` e `weekly-warning-tint` formam as etiquetas de pendência; `weekly-notice-ink` dá leitura aos avisos sobre essa mesma tinta. A etiqueta concluída usa `success` com `weekly-success-tint` e check. Essas combinações pertencem a esses componentes, sem substituir as tintas incumbentes de prévia, erro ou confirmação. No comparativo semanal, `leftover-series` distingue sobras da série vermelha de produção; legenda e valores mantêm o significado acessível sem depender só da cor.
+
 **The Action and State Rule.** Use o vermelho da marca para agir ou selecionar. Uma confirmação usa verde e uma advertência usa âmbar, acompanhados de texto ou ícone de estado.
 
-As combinações de acento e tinta de cada sabor pertencem a `lib/flavor-identity.ts`. Elas reaparecem no topo do card, no selo, no ícone e na área de identidade da tarefa. Preserve essa associação ao estender o catálogo; uma cor de ingrediente não ganha significado de erro ou sucesso.
+As combinações de acento e tinta de cada sabor pertencem a `lib/flavor-identity.ts`, com associação estável pelo ID, assim como a imagem. Elas reaparecem no topo do card, no selo, no fallback de ícone e na área de identidade da tarefa. As listas compactas podem omitir o selo para priorizar nome, descrição e quantidade. Preserve essa associação ao estender o catálogo; uma cor de ingrediente não ganha significado de erro ou sucesso.
 
 ## Typography
 
@@ -195,6 +263,9 @@ As combinações de acento e tinta de cada sabor pertencem a `lib/flavor-identit
 - **Body:** texto e campos comuns. Contexto de operação usa frequentemente (14px–15px) e descrições usam (13px).
 - **Label / Action / Caption:** rótulos de campo, ações e apoio têm papéis distintos; preserve a caixa de frase que o app usa.
 - **Quantity:** valor de contagem, reduzido para (34px) no celular. Totais e valores financeiros também usam peso pesado e algarismos tabulares.
+- **Next work:** título vermelho da faixa de próximo trabalho, com largura limitada a (18ch); reduz para (24px) até (640px). Não substitui o título de página.
+- **Weekly metric:** números do resumo semanal, com apoio imediatamente abaixo; no celular usam (26px). O financeiro ajusta seus totais ao espaço e conserva rótulo e explicação juntos.
+- **Detail:** datas, unidades e contexto compacto recorrente. Metadados menores existentes em componentes específicos não formam uma nova escala geral para textos ou campos.
 
 **The Title First Rule.** Apresente o título antes do contexto de apoio. Datas, local de preparo e estado explicam a tarefa; não os transforme em um título decorativo acima dela.
 
@@ -202,9 +273,13 @@ As combinações de acento e tinta de cada sabor pertencem a `lib/flavor-identit
 
 A aplicação combina navegação lateral de (16rem), barra superior de (72px) e conteúdo com largura máxima de (1500px). O respiro principal usa `shell`; grupos próximos usam `related` e `field`, enquanto blocos maiores usam `block` e `section`. Esses passos descrevem os valores recorrentes do código, não uma exigência de que toda distância seja múltipla de um único módulo.
 
-O catálogo usa quatro colunas, três até (1250px), duas até (767px) e cinco a partir de (1600px), com gaps de (18px), (12px) no celular e (10px) até (360px). Cards de feira e agenda passam de três colunas para uma até (900px). O resumo passa de quatro métricas para duas colunas no celular. Use `minmax(0, 1fr)` para manter os textos dentro do espaço disponível.
+O catálogo de cards usa quatro colunas, três até (1250px), duas até (767px) e cinco a partir de (1600px), com gaps de (18px), (12px) no celular e (10px) até (360px). Os cards legados de feira passam de três colunas para uma até (900px). Use `minmax(0, 1fr)` para manter os textos dentro do espaço disponível.
+
+Os padrões semanais acrescentam uma densidade própria: agenda em quatro colunas, resumo em três, lista de produção em duas e área de feiras/gastos em proporção (1.4fr / 1fr). Até (1100px), a produção passa para uma coluna. Até (640px), a agenda ocupa duas colunas; o resumo usa duas com a movimentação numa linha inteira; feiras e gastos se empilham. A faixa ilustrada reserva (34%) à imagem, (33%) no celular, sem colocar texto sobre a comida. A tabela editável mantém largura mínima de (550px) e rolagem horizontal dentro de seu contêiner, sem alargar a página. Os preparados na feira usam três colunas e duas até (640px).
 
 Até (767px), a barra superior tem (64px); o conteúdo recebe margens internas laterais de (16px), reduzidas para (13px) até (360px). A navegação inferior fica fixa e reserva espaço no final da página, incluindo a safe area. As ações persistentes ficam acima dela, com deslocamento inferior de (84px).
+
+Até (1280px), título e controles podem quebrar linha. Até (640px), o seletor de semana e atualizar ocupam a primeira linha, seguidos por nova semana e registrar gasto. Priorize controles legíveis e largura útil do campo ao comprimir o cabeçalho. Filtros de gastos e histórico passam para duas colunas no celular; detalhes de histórico passam de pares lado a lado para rótulo acima do valor.
 
 A tarefa de sabor ocupa a viewport com altura dinâmica (`100dvh`). No desktop, identidade e formulário usam proporção (38% / 62%). No celular, a identidade vira uma faixa horizontal e o formulário vem abaixo. As linhas de separação mantêm nome/contexto ao lado da quantidade até (360px), quando empilham os dois grupos.
 
@@ -223,6 +298,8 @@ As superfícies são planas em repouso. Fundo, borda, tinta e divisão de área 
 
 Os cantos são suavemente arredondados: controles usam `control`, seletores e contagens usam `selection`, cards e listas usam `surface`, e diálogos usam `dialog`. Estados compactos usam `compact`. A tarefa de sabor em tela inteira tem cantos retos, de acordo com a viewport.
 
+A faixa ilustrada usa `feature` no desktop e `surface` até (640px). Miniaturas de produção usam cantos de superfície. Raios pequenos de barras e legendas são detalhes locais; não estabelecem uma forma nova para botões ou campos.
+
 Bordas comuns têm (1px); cards de sabor acrescentam borda superior de (2px) na cor da identidade. Selos pequenos têm cantos discretos, não formato de cápsula. Círculos são próprios dos pontos de progresso e das confirmações. Ícones são SVG de traço; o ícone do ingrediente usa traço mais leve (1.3).
 
 ## Components
@@ -237,11 +314,15 @@ Hover muda a cor; a pressão desloca o botão (1px) para baixo. O foco tem conto
 
 Etiquetas de estado são compactas, com texto em negrito (13px), sem sombra. Neutro, retorno confirmado e dia de feira usam suas combinações semânticas de texto/tinta. O filtro de local de preparo é um grupo de botões, não uma etiqueta: área neutra, botão selecionado branco e texto vermelho, com `aria-pressed`.
 
+As etiquetas semanais usam texto compacto em negrito (11px), cantos `compact` e os pares de cor específicos do frontmatter. Concluído acrescenta check e texto; pendência continua escrita. Esse tamanho pertence à etiqueta, não ao rótulo de um campo.
+
 ### Cards / Containers
 
 Painéis brancos têm borda leve e cantos de superfície; o padding recorrente varia entre (20px–26px) conforme a densidade. Listas compartilham uma superfície e separam suas linhas com bordas, evitando um card externo para cada campo.
 
-O card de sabor é um botão inteiro. A face combina tinta, selo e ícone ou a imagem ilustrativa existente. O corpo mostra nome, descrição, quantidade e unidade; o estado registrado acrescenta um check verde. O hover altera borda e sombra, preservando a cor que identifica o sabor.
+O card de sabor é um botão inteiro. A face combina imagem ilustrativa e selo, com ícone como fallback. O corpo mostra nome, descrição, quantidade e unidade; o estado registrado acrescenta um check verde. O hover altera borda e sombra, preservando a cor que identifica o sabor.
+
+As (18) imagens WebP ativas compartilham massa dourada, recheio visível, fundo claro, luz e enquadramento consistentes. O mapeamento é por ID em `lib/flavor-identity.ts`, não pela posição visível da lista. Os textos alternativos identificam sabor e caráter ilustrativo; a faixa usa legenda visível. Origem e prompts ficam em `public/images/sabores/ORIGEM.json` e nos metadados dos assets. São ilustrações geradas, sem acesso a fotos reais do Facebook ou do estabelecimento. Brócolis mantém os quatro ingredientes da descrição, sem selo vegetariano; o item antigo inativo não ganha imagem nem reaparece por reordenação.
 
 ### Inputs / Fields
 
@@ -252,6 +333,30 @@ Erros inline usam tinta vermelha suave, texto explícito e `role="alert"`. Falha
 ### Navigation
 
 A navegação lateral usa fundo carvão, ícones de traço e itens claros. Hover usa carvão mais claro; seleção usa vermelho e texto branco em negrito. No celular, destinos frequentes aparecem na barra inferior branca, com ícone, rótulo e seleção rosa/vermelha; “Mais” abre a navegação completa.
+
+Cabeçalho e navegação permanecem estáveis ao trocar de área. O conteúdo abaixo do cabeçalho passa de opacidade (0.72) a (1) em (180ms), com `ease-out`; movimento reduzido pula essa transição. Painéis de trabalho continuam montados ao serem ocultados, preservando campos e posição de leitura por área. Não anime a página inteira nem condicione acesso aos campos ao fim da animação.
+
+### Agenda, cobertura e comparativo
+
+A agenda é uma linha de botões entre divisórias leves: ícone vermelho, nome, data e check ou seta. Cada item tem altura mínima de (76px), reduzida para (64px) no celular. O resumo aproxima rótulo, valor e unidade/completude, sem borda externa em cada métrica. Um dado não confirmado usa travessão com contexto de espera; um caixa parcial é identificado como parcial.
+
+O comparativo usa barras horizontais alinhadas por semana, produção em vermelho e sobras em âmbar, com datas, valores escritos e legenda. O estado vazio explica a ausência de semanas concluídas. Dados sintéticos das capturas de QA não definem números, metas ou padrões do negócio.
+
+### Listas de produção, padrões e sobras
+
+A linha de produção alinha miniatura, nome/ingredientes e quantidade à direita. A miniatura usa (74px), reduzida para (58px × 64px) no celular; o espaço central cede sem empurrar a quantidade para fora. Distribuições editáveis ficam em três campos abaixo da linha. O grupo de colaboradores e a confirmação pertencem ao conjunto, evitando um botão de salvar por sabor.
+
+A tabela de padrões mantém cabeçalhos claros e inputs usuais. Sobras usa linhas alinhadas com campos de contagem e contexto de reaproveitamento próximo. Preserve a distinção escrita entre previsto e confirmado e entre vazio e zero; não substitua campos legíveis por controles decorativos.
+
+### Financeiro e registro de gasto
+
+Resumo, Caixa e Gastos usam abas textuais sobre uma divisória: texto neutro no repouso, vermelho pesado e sublinhado de (2px) na seleção. A área mínima de interação é (44px). Totais financeiros ficam junto de suas ressalvas; uma referência estimada tem bloco próprio e não assume a aparência de entrada realizada.
+
+O gasto abre em diálogo com largura limitada de (540px). Valor, descrição, data e situação aparecem primeiro; categoria, fornecedor e vínculo ficam em detalhes expansíveis. A nota opcional tem seção independente, controle tracejado com altura mínima de (48px), foco visível e nome do arquivo legível. Anexos privados abrem por link autenticado, sem miniaturas públicas. Falha do anexo tem mensagem própria e não apresenta o gasto salvo como perdido. A ação de pagamento atualiza o mesmo gasto e seu estado; não cria uma segunda linha visual de despesa.
+
+### Histórico de registros
+
+Filtros precedem uma lista com divisórias. Cada resumo mostra tipo, autoria, data e indicação de correção; a expansão revela rótulos e valores em uma superfície branca, incluindo o antes e o confirmado quando presentes. Use texto de negócio, valores formatados e quebra de palavras para manter a leitura no celular, em vez de apresentar o snapshot como JSON bruto.
 
 ### Tarefa e contagem de sabor
 
@@ -264,18 +369,23 @@ O movimento de identidade usa spring com stiffness (340) e damping (32); a troca
 ## Do's and Don'ts
 
 ### Do:
-- **Do** preserve nome, cor, selo e ícone do sabor entre o card e a tarefa.
+- **Do** preserve nome, cor, imagem e identidade do sabor pelo ID entre lista, card e tarefa; use o ícone como fallback.
 - **Do** use vermelho para ação/seleção e estados semânticos com texto ou ícone explícito.
 - **Do** mantenha o título antes do contexto e os rótulos próximos dos campos.
 - **Do** mantenha superfícies planas em repouso, foco visível e áreas de toque de pelo menos (44px).
 - **Do** use algarismos tabulares em quantidades, totais e valores financeiros.
 - **Do** adapte a separação para uma coluna em telas estreitas e reserve espaço para a navegação fixa.
 - **Do** respeite movimento reduzido e preserve os campos ao apresentar erros ou novo acesso.
+- **Do** mantenha completude, unidade e ressalvas próximas do número, com previsão e confirmação nomeadas.
+- **Do** mantenha a nota opcional visível e os erros de anexo separados do resultado de salvar o gasto.
 
 ### Don't:
 - **Don't** transforme datas, estados ou contexto de preparo em eyebrows decorativos.
 - **Don't** misture as cores de identidade do catálogo com os significados de erro e confirmação.
 - **Don't** use uma sombra dura deslocada em superfícies deste sistema.
 - **Don't** substitua os SVG de traço por caracteres tipográficos como ícones.
-- **Don't** trate a imagem ilustrativa existente como fotografia específica de todos os sabores.
+- **Don't** apresente ilustrações geradas como fotos reais do estabelecimento ou troque o recheio por uma imagem genérica de outro sabor.
 - **Don't** mostre uma confirmação visual antes da resposta de sucesso do registro.
+- **Don't** transforme valores, horários ou nomes sintéticos de QA em conteúdo padrão do negócio.
+
+Os literais auxiliares anteriores de cor, tamanho e raio apontados em `work/evolucao/detector-final.json` continuam fora da escala geral quando não correspondem a um padrão reutilizado acima. Não foram reparados nem incorporados só para eliminar avisos. Lato é uma decisão incumbente preservada por continuidade autorizada; os quatro avisos do detector não motivam troca de família nesta evolução.

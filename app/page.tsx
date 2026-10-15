@@ -79,6 +79,13 @@ import { FlavorTask, FlavorTaskSpec } from "@/components/beto/FlavorTask";
 import { DayTimeline } from "@/components/beto/DayTimeline";
 import { AuthGate, useBetoAuth } from "@/components/beto/AuthGate";
 import { AccountSettings } from "@/components/beto/AccountSettings";
+import {
+  Management,
+  Markets,
+  ProductionTemplate,
+} from "@/components/beto/Management";
+import { RecordHistory } from "@/components/beto/RecordHistory";
+import { ExpenseEntry } from "@/components/beto/ExpenseEntry";
 type Screen =
   | "hoje"
   | "producao"
@@ -87,12 +94,12 @@ type Screen =
   | "historico"
   | "configurar";
 const nav = [
-  { id: "hoje", label: "Hoje", icon: Home },
+  { id: "hoje", label: "Início", icon: Home },
   { id: "producao", label: "Produção", icon: ChefHat },
   { id: "feiras", label: "Feiras", icon: Store },
-  { id: "caixa", label: "Caixa", icon: Wallet },
+  { id: "caixa", label: "Financeiro", icon: Wallet },
   { id: "historico", label: "Histórico", icon: History },
-  { id: "configurar", label: "Configurar", icon: Settings },
+  { id: "configurar", label: "Configurações", icon: Settings },
 ] as const;
 type Modal = {
   kind:
@@ -249,6 +256,18 @@ export default function App({
 }
 function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
   const auth = useBetoAuth();
+  const [expenseEntry, setExpenseEntry] = useState<{
+    id?: string;
+    fairId?: string;
+    roundId?: string;
+    category?: string;
+  } | null>(null);
+  const [historyBusy, setHistoryBusy] = useState(false),
+    [historyEnd, setHistoryEnd] = useState(false);
+  const [dirtySources, setDirtySources] = useState<Record<string, boolean>>({});
+  const managementDirty = Object.values(dirtySources).some(Boolean);
+  const markDirty = (dirty: boolean, source = "management") =>
+    setDirtySources((v) => ({ ...v, [source]: dirty }));
   const [data, setData] = useState<State>(emptyState),
     [version, setVersion] = useState(0),
     [loaded, setLoaded] = useState(false),
@@ -281,6 +300,8 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
     [formError, setFormError] = useState("");
   const dataRef = useRef(data),
     versionRef = useRef(version),
+    scrollPositions = useRef<Record<string, number>>({}),
+    activeScreen = useRef<Screen>("hoje"),
     lock = useRef(false),
     pending = useRef<{ id: string; body: string } | null>(null),
     timeRef = useRef({ server: Date.now(), received: Date.now() });
@@ -371,7 +392,12 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
       if (!r.ok) throw Error(v.error);
       applyData(v.state, v.version, v.updated);
       setActor(v.actor);
-      setAudit(v.audit);
+      setAudit((existing) =>
+        [
+          ...v.audit,
+          ...existing.filter((a) => !v.audit.some((n: any) => n.id === a.id)),
+        ].sort((a, b) => b.version - a.version),
+      );
       timeRef.current = {
         server: Date.parse(v.serverTime),
         received: Date.now(),
@@ -390,8 +416,19 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
   useEffect(() => {
     void load();
     const read = () => {
-      const s = location.hash.slice(1);
-      if (nav.some((n) => n.id === s)) setScreen(s as Screen);
+      const s = location.hash.slice(1).split("?")[0];
+      if (nav.some((n) => n.id === s) && activeScreen.current !== s) {
+        scrollPositions.current[activeScreen.current] = window.scrollY;
+        activeScreen.current = s as Screen;
+        setScreen(s as Screen);
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: scrollPositions.current[s] || 0,
+            behavior: "instant",
+          });
+          document.getElementById("conteudo")?.focus({ preventScroll: true });
+        });
+      }
     };
     read();
     window.addEventListener("hashchange", read);
@@ -418,10 +455,26 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
   useEffect(() => {
     if (previewOnly) return;
     const timer = setInterval(() => {
-      if (!task && !modal && !busy && !configDirty) void load(true);
+      if (
+        !task &&
+        !modal &&
+        !expenseEntry &&
+        !busy &&
+        !configDirty &&
+        !managementDirty
+      )
+        void load(true);
     }, 180000);
     return () => clearInterval(timer);
-  }, [task, modal, busy, configDirty, previewOnly]);
+  }, [
+    task,
+    modal,
+    expenseEntry,
+    managementDirty,
+    busy,
+    configDirty,
+    previewOnly,
+  ]);
   useEffect(() => {
     if (screen === "configurar" && !configDirty) {
       setCatalog(structuredClone(data.flavors));
@@ -430,18 +483,39 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
   }, [screen, data.flavors, data.settings]);
   useEffect(() => {
     const prevent = (e: BeforeUnloadEvent) => {
-      if (task || modal || configDirty) e.preventDefault();
+      if (task || modal || configDirty || managementDirty) e.preventDefault();
     };
     window.addEventListener("beforeunload", prevent);
     return () => window.removeEventListener("beforeunload", prevent);
-  }, [task, modal, configDirty]);
+  }, [task, modal, configDirty, managementDirty]);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const transitions = Array.from(
+      document.querySelectorAll<HTMLElement>("#conteudo > :not(.pagehead)"),
+    ).map((node) =>
+      node.animate([{ opacity: 0.72 }, { opacity: 1 }], {
+        duration: 180,
+        easing: "ease-out",
+      }),
+    );
+    return () => transitions.forEach((animation) => animation.cancel());
+  }, [screen]);
   function go(s: Screen) {
     if (configDirty) {
       toast.warning("Salve ou cancele as alterações antes de sair.");
       return;
     }
+    scrollPositions.current[activeScreen.current] = window.scrollY;
+    activeScreen.current = s;
     setScreen(s);
     location.hash = s;
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: scrollPositions.current[s] || 0,
+        behavior: "instant",
+      });
+      document.getElementById("conteudo")?.focus({ preventScroll: true });
+    });
     setGroup("base");
   }
   function setMoment(v: string) {
@@ -607,7 +681,9 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
     setModal(m);
     setCashStep(0);
     if (m.kind === "round") {
-      const start = weekStart(clock.day);
+      let start = weekStart(clock.day);
+      while (data.rounds.some((r) => r.start === start))
+        start = addDays(start, 7);
       setDraft({
         start,
         productionDay: clock.weekday === 4 ? addDays(start, 1) : start,
@@ -660,6 +736,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
     if (modal.kind === "round")
       op = {
         kind: "round",
+        returnMode: "semana",
         start: draft.start,
         productionDay: draft.productionDay,
       };
@@ -674,6 +751,9 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
         kind: "expense",
         roundId: round.id,
         expenseId: draft.expenseId,
+        status: draft.status || "pago",
+        paidOn: draft.paidOn || null,
+        supplier: draft.supplier || "",
         fairId: draft.fairId || "",
         date: draft.date,
         description: draft.description,
@@ -698,6 +778,8 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
         cash: draft.cash,
         pix: draft.pix,
         card: draft.card,
+        debit: draft.debit || 0,
+        credit: draft.credit || 0,
         withdrawal: draft.withdrawal,
         correction: draft.correction,
         reason: draft.reason,
@@ -783,6 +865,35 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
+  async function moreHistory() {
+    if (historyBusy) return;
+    setHistoryBusy(true);
+    try {
+      const before = Math.min(...audit.map((a) => a.version));
+      const r = await fetch("/api/history?before=" + before, {
+        cache: "no-store",
+      });
+      const v: any = await r.json();
+      if (r.status === 401)
+        window.dispatchEvent(new Event("beto:session-expired"));
+      if (!r.ok) throw Error(v.error);
+      setAudit((items) => [
+        ...items,
+        ...v.revisions.filter(
+          (a: any) => !items.some((old) => old.id === a.id),
+        ),
+      ]);
+      setHistoryEnd(v.nextBefore === null);
+    } catch (e) {
+      toast.error(
+        e instanceof TypeError
+          ? "Não conseguimos abrir as alterações anteriores. Tente novamente."
+          : (e as Error).message,
+      );
+    } finally {
+      setHistoryBusy(false);
+    }
+  }
   async function showRevision(v: number) {
     if (previewOnly) {
       toast.info(
@@ -803,7 +914,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
     }
   }
   async function logout() {
-    if (configDirty || task || modal) {
+    if (configDirty || task || modal || expenseEntry || managementDirty) {
       toast.warning("Salve ou cancele o formulário antes de sair.");
       return;
     }
@@ -983,11 +1094,11 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                   </h1>
                   <p>
                     {screen === "hoje"
-                      ? "Produção, carga e retorno no mesmo lugar."
+                      ? "Produção, feiras e gestão do seu negócio."
                       : screen === "producao"
                         ? `Um dia na base: ${round ? new Date(productionDay + "T12:00:00Z").toLocaleDateString("pt-BR", { weekday: "long" }) + " · " + dateText(productionDay) : "quarta ou quinta"}.`
                         : screen === "feiras"
-                          ? "Confira cada carga e registre o que voltou."
+                          ? "Consulte as cargas. Conte as sobras no fim da semana."
                           : screen === "caixa"
                             ? "Recebimentos e gastos, sem registrar venda por venda."
                             : screen === "historico"
@@ -996,6 +1107,25 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                   </p>
                 </div>
                 <div className="headcontrols">
+                  <button
+                    className="btn secondary m-new-week"
+                    disabled={!loaded || !!error || managementDirty}
+                    onClick={() => open({ kind: "round" })}
+                  >
+                    <CalendarDays size={17} />
+                    Nova semana
+                  </button>
+                  <button
+                    className="btn secondary m-global-expense"
+                    disabled={!loaded || !!error}
+                    onClick={() => {
+                      setFormError("");
+                      setExpenseEntry({});
+                    }}
+                  >
+                    <Plus size={17} />
+                    Registrar gasto
+                  </button>
                   {data.rounds.length > 0 && (
                     <label className="roundselect">
                       <CalendarDays size={18} />
@@ -1004,6 +1134,12 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                         aria-label="Selecionar rodada"
                         value={round?.id || ""}
                         onChange={(e) => {
+                          if (managementDirty) {
+                            toast.warning(
+                              "Salve ou cancele o registro em edição antes de trocar a semana.",
+                            );
+                            return;
+                          }
                           setRoundId(e.target.value);
                           setFairId("");
                           setGroup("base");
@@ -1023,7 +1159,14 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                   <button
                     className="refreshbutton"
                     aria-label="Atualizar registros"
-                    disabled={busy || !!task || !!modal || configDirty}
+                    disabled={
+                      busy ||
+                      !!task ||
+                      !!modal ||
+                      !!expenseEntry ||
+                      configDirty ||
+                      managementDirty
+                    }
                     onClick={() => void load(true)}
                   >
                     <RefreshCw size={19} />
@@ -1054,9 +1197,12 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                       <Check size={18} />
                       <span>
                         Operação concluída ·{" "}
-                        {round!.fairs.filter((f) => !f.cash.closed).length
-                          ? `${round!.fairs.filter((f) => !f.cash.closed).length} caixas podem ser registrados depois`
-                          : "retornos e caixas salvos"}
+                        {!round!.weeklyCash?.closed &&
+                        round!.fairs.filter((f) => !f.cash.closed).length
+                          ? round!.cashMode === "semanal"
+                            ? "caixa semanal pode ser registrado depois"
+                            : `${round!.fairs.filter((f) => !f.cash.closed).length} caixas podem ser registrados depois`
+                          : "contagem e caixa salvos"}
                       </span>
                       {admin && (
                         <button
@@ -1068,342 +1214,75 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                       )}
                     </div>
                   )}
-                  {screen === "hoje" && (
-                    <>
-                      <section className="todayfocus">
-                        <div className="focuscopy">
-                          <h2>{next.title}</h2>
-                          <p>{next.subtitle}</p>
-                          <button
-                            className="btn"
-                            onClick={primary}
-                            disabled={busy}
-                          >
-                            {!round
-                              ? "Iniciar rodada"
-                              : next.kind === "production"
-                                ? "Continuar produção"
-                                : next.kind === "return"
-                                  ? "Registrar retorno"
-                                  : next.kind === "cash"
-                                    ? "Registrar caixa"
-                                    : next.kind === "allocation"
-                                      ? "Conferir carga"
-                                      : round.fairs.every(
-                                            (f) => f.returnSealed,
-                                          ) && !closed
-                                        ? "Concluir operação"
-                                        : "Ver minha semana"}
-                            <ArrowRight size={19} />
-                          </button>
-                        </div>
-                        <div className="focusprocess">
-                          {round ? (
-                            <>
-                              <h3>
-                                {sealed
-                                  ? "Produção confirmada"
-                                  : "Próximos passos"}
-                              </h3>
-                              <DayTimeline steps={steps} />
-                              <p>
-                                Produção na base em {dateText(productionDay)}.
-                                As feiras continuam sexta, sábado e domingo.
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <img
-                                src="/images/pastel.png"
-                                alt="Pastel de carne com queijo, imagem ilustrativa"
-                                width="340"
-                                height="255"
-                              />
-                              <small>Imagem ilustrativa</small>
-                            </>
-                          )}
-                        </div>
-                      </section>
-                      <section
-                        className="summarystrip"
-                        aria-label="Resumo da rodada"
-                      >
-                        <Summary
-                          label="Produzidos na base"
-                          value={metrics.produced}
-                        />
-                        <Summary
-                          label="Saída estimada"
-                          value={
-                            round?.fairs.some((f) => f.returnSealed)
-                              ? metrics.output
-                              : "—"
-                          }
-                          detail={`${round?.fairs.filter((f) => f.returnSealed).length || 0}/3 retornos concluídos`}
-                        />
-                        <Summary
-                          label="Taxa de retorno"
-                          value={
-                            metrics.returnRate === null
-                              ? "—"
-                              : metrics.returnRate
-                                  .toFixed(1)
-                                  .replace(".", ",") + "%"
-                          }
-                          detail="Retorno não é todo desperdício"
-                        />
-                        <Summary
-                          label="Resultado parcial"
-                          value={moneyText(metrics.net)}
-                          detail={`${metrics.cashCount}/3 caixas registrados`}
-                        />
-                      </section>
-                      <div className="sectionhead">
-                        <h2>As três feiras</h2>
-                        {round ? (
-                          <button
-                            className="textbtn"
-                            onClick={() => go("feiras")}
-                          >
-                            Abrir feiras <ChevronRight size={17} />
-                          </button>
-                        ) : null}
-                      </div>
-                      {round ? (
-                        <div className="fairgrid">
-                          {round.fairs.map((f) => (
-                            <article className="scheduledfair" key={f.id}>
-                              <div className="scheduledday">
-                                <span>
-                                  {new Date(
-                                    f.date + "T12:00:00Z",
-                                  ).toLocaleDateString("pt-BR", {
-                                    weekday: "long",
-                                  })}
-                                </span>
-                                <b>{dateText(f.date)}</b>
-                              </div>
-                              <h3>{f.name}</h3>
-                              <p>
-                                <MapPin size={15} />
-                                {f.transport}
-                              </p>
-                              <span className="pill neutral">
-                                {f.returnSealed
-                                  ? "Retorno salvo"
-                                  : phaseLabels[fairPhase(f, now)]}
-                              </span>
-                              <div className="scheduledfooter">
-                                <span>
-                                  {f.lines.reduce((a, l) => a + l.taken, 0)} na
-                                  carga
-                                </span>
-                                <button
-                                  className="textbtn"
-                                  onClick={() => {
-                                    setFairId(f.id);
-                                    go("feiras");
-                                  }}
-                                >
-                                  Ver feira <ChevronRight size={16} />
-                                </button>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="weekpreview">
-                          <article>
-                            <strong>Sexta</strong>
-                            <h3>Feira dos Amarais</h3>
-                            <p>Campinas · Santa Mônica / Chácara dos Amarais</p>
-                          </article>
-                          <article>
-                            <strong>Sábado</strong>
-                            <h3>Nova Odessa</h3>
-                            <p>Produção e retorno da mesma rodada</p>
-                          </article>
-                          <article>
-                            <strong>Domingo</strong>
-                            <h3>Morungaba</h3>
-                            <p>Retorno salvo, caixa no seu tempo</p>
-                          </article>
-                        </div>
-                      )}
-                      <div className="sectionhead">
-                        <h2>Sabores da base</h2>
-                        <button
-                          className="textbtn"
-                          onClick={() => go("producao")}
-                        >
-                          Ver sabores <ChevronRight size={17} />
-                        </button>
-                      </div>
-                      <div className="foodgrid">
-                        {base.slice(0, 4).map((f) => (
-                          <FoodCard
-                            key={f.id}
-                            flavor={f}
-                            index={data.flavors.indexOf(f)}
-                            value={
-                              round?.production.find((p) => p.flavorId === f.id)
-                                ?.produced || 0
-                            }
-                            detail="produzidos na base"
-                            done={
-                              recorded("production", f.id) &&
-                              recorded("allocation", f.id)
-                            }
-                            locked={
-                              !round || sealed || !productionOpen(round, now)
-                            }
-                            onClick={() =>
-                              round
-                                ? openTask(
-                                    f,
-                                    sealed || !productionOpen(round, now)
-                                      ? "consult"
-                                      : "production",
-                                  )
-                                : open({ kind: "round" })
-                            }
-                          />
-                        ))}
-                      </div>
-                    </>
+                  <Management
+                    screen={screen}
+                    state={data}
+                    round={round}
+                    save={save}
+                    busy={busy}
+                    now={now}
+                    error={formError}
+                    onDirty={markDirty}
+                    onNavigate={go}
+                    onNewWeek={() => open({ kind: "round" })}
+                    onExpense={(id) => {
+                      setFormError("");
+                      setExpenseEntry({ id });
+                    }}
+                    onSelectWeek={(id) => {
+                      if (managementDirty) {
+                        toast.warning(
+                          "Salve o registro em edição antes de trocar a semana.",
+                        );
+                        return;
+                      }
+                      setRoundId(id);
+                      go("hoje");
+                    }}
+                  />
+                  {round?.returnMode !== "feira" && (
+                    <div hidden={screen !== "feiras"}>
+                      <Markets
+                        state={data}
+                        round={round}
+                        save={save}
+                        busy={busy}
+                        now={now}
+                        error={formError}
+                        onDirty={(dirty) => markDirty(dirty, "returns")}
+                        onNewWeek={() => open({ kind: "round" })}
+                        onLoad={(flavor, id) => {
+                          const target = round?.fairs.find((f) => f.id === id);
+                          if (target && loadLocked(target, now)) {
+                            if (admin)
+                              open({
+                                kind: "correction",
+                                target: {
+                                  flavorId: flavor.id,
+                                  kind: "load",
+                                  day: target.date,
+                                  fairId: id,
+                                },
+                              });
+                            else openTask(flavor, "consult", target);
+                          } else openTask(flavor, "load", target);
+                        }}
+                        onConfirmLoad={(id) =>
+                          open({ kind: "confirm-load", fairId: id })
+                        }
+                        onTeamExpense={(fairId) => {
+                          setFormError("");
+                          setExpenseEntry({
+                            fairId,
+                            roundId: round?.id,
+                            category: "Equipe",
+                          });
+                        }}
+                      />
+                    </div>
                   )}
-                  {screen === "producao" &&
-                    (!round ? (
-                      <div className="empty">
-                        <ChefHat size={35} />
-                        <h2>Comece pela rodada.</h2>
-                        <p>
-                          Escolha quarta ou quinta e conte os sabores produzidos
-                          na base.
-                        </p>
-                        <button
-                          className="btn"
-                          onClick={() => open({ kind: "round" })}
-                        >
-                          Iniciar rodada <Plus size={18} />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <section className="processsurface">
-                          <div>
-                            <h2>
-                              {sealed
-                                ? "Produção confirmada."
-                                : "Um sabor por vez."}
-                            </h2>
-                            <p>
-                              {dateText(productionDay)} · {metrics.produced}{" "}
-                              produzidos na base
-                              {round.legacyProduction
-                                ? " · registro de versão anterior"
-                                : ""}
-                            </p>
-                          </div>
-                          <DayTimeline steps={steps} />
-                        </section>
-                        <div className="sectionhead">
-                          <Filter value={group} onChange={setGroup} />
-                          {admin &&
-                            !sealed &&
-                            !data.records.some(
-                              (e) =>
-                                e.roundId === round.id &&
-                                e.kind === "production",
-                            ) && (
-                              <button
-                                className="textbtn"
-                                onClick={() => open({ kind: "production-day" })}
-                              >
-                                Mudar dia de produção
-                              </button>
-                            )}
-                          <span className="muted">
-                            {groupItems.length} sabores
-                          </span>
-                        </div>
-                        {group === "na_feira" && (
-                          <p className="infoinline">
-                            <Info size={18} />
-                            Esses sabores são informados no retorno da feira.
-                            Você não precisa registrar cada venda.
-                          </p>
-                        )}
-                        <div className="foodgrid">
-                          {groupItems.map((f) => (
-                            <FoodCard
-                              key={f.id}
-                              flavor={f}
-                              index={data.flavors.indexOf(f)}
-                              value={
-                                round.production.find(
-                                  (p) => p.flavorId === f.id,
-                                )?.produced || 0
-                              }
-                              detail={
-                                f.prepKind === "na_feira"
-                                  ? "preparo informado no retorno"
-                                  : "produzidos na base"
-                              }
-                              done={
-                                recorded("production", f.id) &&
-                                recorded("allocation", f.id)
-                              }
-                              locked={
-                                sealed ||
-                                closed ||
-                                !productionOpen(round, now) ||
-                                f.prepKind === "na_feira"
-                              }
-                              onClick={() =>
-                                openTask(
-                                  f,
-                                  sealed ||
-                                    closed ||
-                                    !productionOpen(round, now) ||
-                                    f.prepKind === "na_feira"
-                                    ? "consult"
-                                    : "production",
-                                )
-                              }
-                            />
-                          ))}
-                        </div>
-                        <div className="stickyactions">
-                          <span>
-                            {sealed
-                              ? "Produção registrada"
-                              : `${prodDone}/${base.length} contagens · ${allocationDone}/${base.length} separações`}
-                          </span>
-                          <button
-                            className="btn"
-                            disabled={
-                              busy ||
-                              sealed ||
-                              closed ||
-                              !productionOpen(round, now) ||
-                              prodDone !== base.length ||
-                              allocationDone !== base.length
-                            }
-                            onClick={() => open({ kind: "seal-production" })}
-                          >
-                            Concluir produção <Check size={18} />
-                          </button>
-                        </div>
-                        {sealed && !closed && (
-                          <p className="sectionhint">
-                            Precisa corrigir? Abra o registro pelo Histórico
-                            para escolher o sabor e informar o motivo.
-                          </p>
-                        )}
-                      </>
-                    ))}
                   {screen === "feiras" &&
+                    round?.returnMode === "feira" &&
                     (!round ? (
                       <div className="empty">
                         <Store size={35} />
@@ -1696,169 +1575,6 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                         )}
                       </>
                     ))}
-                  {screen === "caixa" &&
-                    (!round ? (
-                      <div className="empty">
-                        <Wallet size={35} />
-                        <h2>O caixa acompanha cada rodada.</h2>
-                        <p>
-                          Crie a rodada para registrar dinheiro, Pix, cartão e
-                          gastos.
-                        </p>
-                        <button
-                          className="btn"
-                          onClick={() => open({ kind: "round" })}
-                        >
-                          Iniciar rodada
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <section
-                          className="summarystrip"
-                          aria-label="Resumo financeiro"
-                        >
-                          <Summary
-                            label="Receita registrada"
-                            value={moneyText(metrics.gross)}
-                            detail={`${metrics.cashCount}/3 caixas`}
-                          />
-                          <Summary
-                            label="Gastos da rodada"
-                            value={moneyText(metrics.cost)}
-                          />
-                          <Summary
-                            label="Resultado parcial"
-                            value={moneyText(metrics.net)}
-                            detail="Depende dos caixas e gastos registrados"
-                          />
-                          <Summary
-                            label="Caixas pendentes"
-                            value={
-                              round.fairs.filter((f) => !f.cash.closed).length
-                            }
-                          />
-                        </section>
-                        <div className="sectionhead">
-                          <h2>Recebimentos de cada feira</h2>
-                        </div>
-                        <div className="cashlist">
-                          {round.fairs.map((f) => (
-                            <article className="cashrow" key={f.id}>
-                              <div>
-                                <h3>{f.name}</h3>
-                                <span>
-                                  {dateText(f.date)} ·{" "}
-                                  {f.cash.closed
-                                    ? "Caixa registrado"
-                                    : closingOpen(f, now)
-                                      ? "Pode registrar"
-                                      : "Aguardando dia da feira"}
-                                </span>
-                              </div>
-                              <strong>
-                                {f.cash.closed ? moneyText(revenue(f)) : "—"}
-                              </strong>
-                              <button
-                                className="btn secondary"
-                                disabled={busy || !closingOpen(f, now)}
-                                onClick={() =>
-                                  open({ kind: "cash", fairId: f.id })
-                                }
-                              >
-                                {f.cash.closed
-                                  ? "Corrigir caixa"
-                                  : "Registrar caixa"}
-                              </button>
-                            </article>
-                          ))}
-                        </div>
-                        <p className="sectionhint">
-                          Pix e cartão são valores recebidos na feira. Cartão
-                          registrado não confirma depósito bancário.
-                        </p>
-                        <div className="sectionhead">
-                          <h2>Gastos da rodada</h2>
-                          <button
-                            className="btn secondary"
-                            onClick={() => open({ kind: "expense" })}
-                          >
-                            <Plus size={18} />
-                            Registrar gasto
-                          </button>
-                        </div>
-                        <div className="expenses">
-                          {data.expenses
-                            .filter((e) => e.roundId === round.id)
-                            .map((e) => (
-                              <article key={e.id}>
-                                <div>
-                                  <span className="expensecategory">
-                                    {e.category}
-                                    {e.fairId
-                                      ? " · " +
-                                        round.fairs.find(
-                                          (f) => f.id === e.fairId,
-                                        )?.name
-                                      : " · rodada"}
-                                  </span>
-                                  <h3>{e.description}</h3>
-                                  <small>{dateText(e.date)}</small>
-                                </div>
-                                <strong>{moneyText(e.amount)}</strong>
-                                <div className="expenseactions">
-                                  <button
-                                    className="textbtn"
-                                    onClick={() =>
-                                      open({ kind: "expense", expenseId: e.id })
-                                    }
-                                  >
-                                    Corrigir
-                                  </button>
-                                  <button
-                                    className="iconbutton"
-                                    aria-label={
-                                      "Cancelar gasto " + e.description
-                                    }
-                                    onClick={() =>
-                                      open({
-                                        kind: "expense-cancel",
-                                        expenseId: e.id,
-                                      })
-                                    }
-                                  >
-                                    <Trash2 size={18} />
-                                  </button>
-                                </div>
-                              </article>
-                            ))}
-                        </div>
-                        {!data.expenses.some((e) => e.roundId === round.id) && (
-                          <div className="inlineempty">
-                            Nenhum gasto registrado. Insumos, equipe e
-                            transporte podem entrar aqui.
-                          </div>
-                        )}
-                        <div className="operationclose">
-                          <p>
-                            {closed
-                              ? "A operação está concluída; os caixas e gastos continuam disponíveis."
-                              : "Você pode concluir a operação após registrar os três retornos, mesmo com caixa pendente."}
-                          </p>
-                          <button
-                            className="btn"
-                            disabled={
-                              closed ||
-                              busy ||
-                              round.fairs.some((f) => !f.returnSealed)
-                            }
-                            onClick={() => open({ kind: "close-round" })}
-                          >
-                            Concluir operação
-                          </button>
-                        </div>
-                      </>
-                    ))}
                   {screen === "historico" && (
                     <>
                       <div className="sectionhead">
@@ -1882,8 +1598,17 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                                     ? "Operação concluída"
                                     : "Operação em aberto"}{" "}
                                   ·{" "}
-                                  {r.fairs.filter((f) => f.returnSealed).length}
-                                  /3 retornos · {k.cashCount}/3 caixas
+                                  {r.weeklyReturn?.closed
+                                    ? "Contagem semanal fechada"
+                                    : r.returnMode === "semana"
+                                      ? "Contagem semanal pendente"
+                                      : `${r.fairs.filter((f) => f.returnSealed).length}/3 retornos`}{" "}
+                                  ·{" "}
+                                  {r.cashMode === "semanal"
+                                    ? r.weeklyCash?.closed
+                                      ? "caixa semanal registrado"
+                                      : "caixa semanal pendente"
+                                    : `${k.cashCount}/3 caixas`}
                                 </span>
                               </div>
                               <div className="historynumbers">
@@ -1903,7 +1628,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                                   go("hoje");
                                 }}
                               >
-                                Abrir rodada
+                                Abrir semana
                               </button>
                             </article>
                           );
@@ -1915,81 +1640,12 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                           criada.
                         </div>
                       )}
-                      <div className="sectionhead">
-                        <h2>Registros por sabor</h2>
-                      </div>
-                      <div className="recordfeed">
-                        {[...data.records]
-                          .reverse()
-                          .filter((e) => !round || e.roundId === round.id)
-                          .slice(0, 80)
-                          .map((e) => (
-                            <article key={e.id}>
-                              <span className="recordtick">
-                                <Check size={17} />
-                              </span>
-                              <div>
-                                <strong>
-                                  {e.kind === "production"
-                                    ? "Produção"
-                                    : e.kind === "allocation"
-                                      ? "Carga / separação"
-                                      : e.kind === "return"
-                                        ? "Retorno"
-                                        : e.kind === "cash"
-                                          ? "Caixa"
-                                          : "Confirmação"}
-                                  {e.flavorId
-                                    ? " · " +
-                                      data.flavors.find(
-                                        (f) => f.id === e.flavorId,
-                                      )?.name
-                                    : ""}
-                                </strong>
-                                <small>
-                                  {e.savedBy} ·{" "}
-                                  {new Date(e.savedAt).toLocaleString("pt-BR", {
-                                    timeZone: "America/Sao_Paulo",
-                                  })}{" "}
-                                  · revisão {e.revision}
-                                </small>
-                              </div>
-                              {e.flavorId && !closed && (
-                                <button
-                                  className="textbtn"
-                                  onClick={() =>
-                                    open({
-                                      kind: "correction",
-                                      target: {
-                                        flavorId: e.flavorId,
-                                        kind:
-                                          e.kind === "return"
-                                            ? "return"
-                                            : e.kind === "allocation"
-                                              ? e.fairId
-                                                ? "load"
-                                                : "allocation"
-                                              : "production",
-                                        day: e.day,
-                                        fairId: e.fairId || undefined,
-                                      },
-                                    })
-                                  }
-                                >
-                                  Corrigir
-                                </button>
-                              )}
-                            </article>
-                          ))}
-                      </div>
-                      {!data.records.length && (
-                        <div className="inlineempty">
-                          Cada confirmação aparece com responsável e revisão.
-                        </div>
-                      )}
+                      <RecordHistory state={data} roundId={round?.id} />
                       <div className="sectionhead">
                         <h2>Histórico de alterações</h2>
-                        <span className="muted">Últimas 40 revisões</span>
+                        <span className="muted">
+                          {audit.length} alterações carregadas
+                        </span>
                       </div>
                       <div className="auditlist">
                         {audit.map((a) => (
@@ -2011,8 +1667,32 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                           </article>
                         ))}
                       </div>
+                      {audit.length >= 40 &&
+                        !historyEnd &&
+                        Math.min(...audit.map((a) => a.version)) > 1 && (
+                          <button
+                            className="btn secondary"
+                            disabled={historyBusy}
+                            onClick={() => void moreHistory()}
+                          >
+                            {historyBusy
+                              ? "Carregando…"
+                              : "Ver alterações anteriores"}
+                          </button>
+                        )}
                     </>
                   )}
+                  <div hidden={screen !== "configurar"}>
+                    {admin && (
+                      <ProductionTemplate
+                        state={data}
+                        save={save}
+                        busy={busy}
+                        error={formError}
+                        onDirty={(dirty) => markDirty(dirty, "template")}
+                      />
+                    )}
+                  </div>
                   {screen === "configurar" && (
                     <>
                       {admin && settings && (
@@ -2291,6 +1971,21 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
               </div>
             </nav>
           </div>
+          <ExpenseEntry
+            entry={expenseEntry}
+            onClose={() => {
+              setFormError("");
+              setExpenseEntry(null);
+            }}
+            state={data}
+            round={round}
+            save={save}
+            busy={busy}
+            now={now}
+            error={formError}
+            previewOnly={previewOnly}
+            onDirty={(dirty) => markDirty(dirty, "expense")}
+          />
           <FlavorTask
             task={task}
             state={data}

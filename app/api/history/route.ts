@@ -6,7 +6,31 @@ export async function GET(req: Request) {
   try {
     const a = await access(req);
     if (!a) return authResponse({ error: "Entre para continuar." }, 401);
-    const revision = Number(new URL(req.url).searchParams.get("version"));
+    const url = new URL(req.url);
+    if (!url.searchParams.has("version")) {
+      const before = Number(
+        url.searchParams.get("before") || Number.MAX_SAFE_INTEGER,
+      );
+      if (!Number.isSafeInteger(before) || before < 1)
+        return authResponse({ error: "Página inválida." }, 400);
+      const rows = await storage()
+        .prepare(
+          "SELECT id,version,action,created FROM beto_revisions WHERE owner=? AND version<? ORDER BY version DESC LIMIT 40",
+        )
+        .bind(a.workspace, before)
+        .all<{
+          id: string;
+          version: number;
+          action: string;
+          created: string;
+        }>();
+      return authResponse({
+        revisions: rows.results,
+        nextBefore:
+          rows.results.length === 40 ? rows.results.at(-1)!.version : null,
+      });
+    }
+    const revision = Number(url.searchParams.get("version"));
     if (!Number.isInteger(revision) || revision < 1)
       return authResponse({ error: "Revisão inválida." }, 400);
     const row = await storage()

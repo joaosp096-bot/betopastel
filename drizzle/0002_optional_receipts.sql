@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS beto_receipts (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL, expense_id TEXT NOT NULL,
+ name TEXT NOT NULL, mime TEXT NOT NULL, size INTEGER NOT NULL,
+ body BLOB NOT NULL, created TEXT NOT NULL, created_by TEXT NOT NULL
+);

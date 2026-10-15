@@ -56,10 +56,10 @@ function Login({
               Da produção
               <br />à próxima feira.
             </h1>
-            <p>A semana organizada, um sabor por vez.</p>
+            <p>Produção, feiras e os registros do negócio.</p>
             <div className="loginphoto">
               <img
-                src="/images/pastel.png"
+                src="/images/sabores/carne-queijo.webp"
                 alt="Pastel de carne com queijo, imagem ilustrativa"
                 width="720"
                 height="540"

@@ -1,6 +1,6 @@
 import { storage } from "@/db/store";
 import { access } from "@/db/access";
-import { emptyState, stateSchema } from "@/lib/model";
+import { emptyState, stateSchema, readState } from "@/lib/model";
 import { applyOperation, operationSchema } from "@/lib/workflow";
 import { sameOrigin, tokenHash, authResponse } from "@/lib/password-auth";
 import { z } from "zod";
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       .bind(a.workspace)
       .all();
     return authResponse({
-      state: row ? stateSchema.parse(JSON.parse(row.payload)) : emptyState(),
+      state: row ? readState(JSON.parse(row.payload)) : emptyState(),
       version: row?.version || 0,
       updated: row?.updated || null,
       audit: audit.results,
@@ -99,11 +99,9 @@ export async function PUT(req: Request) {
         )
         .bind(a.workspace)
         .first<{ payload: string; version: number; updated: string }>();
-      const original = stateSchema.parse(JSON.parse(prior.payload));
+      const original = readState(JSON.parse(prior.payload));
       return authResponse({
-        state: current
-          ? stateSchema.parse(JSON.parse(current.payload))
-          : original,
+        state: current ? readState(JSON.parse(current.payload)) : original,
         version: current?.version || prior.version,
         updated: current?.updated || prior.created,
         receipt: original.records.find((e) => e.id === prior.receipt_id),
@@ -128,7 +126,7 @@ export async function PUT(req: Request) {
     let next;
     try {
       next = applyOperation(
-        row ? stateSchema.parse(JSON.parse(row.payload)) : emptyState(),
+        row ? readState(JSON.parse(row.payload)) : emptyState(),
         operation,
         { ...a.actor, now: new Date() },
       );

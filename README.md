@@ -4,30 +4,37 @@ Sistema independente de produção, carga, retorno e caixa para as feiras de Ama
 
 ## Usar
 
-1. Entre com o acesso criado pelo administrador.
-2. Inicie a rodada e escolha o dia de produção. O dia não muda as datas das feiras.
-3. Abra cada sabor de base. Informe a quantidade produzida, salve, separe para as três feiras e salve novamente. O próximo sabor abre após a confirmação do servidor. Registre zero quando não produziu.
-4. Conclua a produção e confira cada carga pela tela Feiras. Uma carga pode ter quantidade e preço diferentes das outras. Alterar a carga seguinte preserva as feiras anteriores.
-5. Após a feira, registre o que voltou, a parte reaproveitável e, nos sabores feitos na feira, o total preparado. Perdas/consumo fora do retorno e ajustes são opcionais. Não registre cada venda.
-6. Conclua os três retornos para encerrar a operação da rodada. O caixa e os gastos permanecem disponíveis para registro posterior.
-7. Consulte o Histórico para corrigir com motivo ou abrir o estado de uma revisão. Exportar registros baixa o estado atual em JSON; as revisões completas permanecem no D1.
+1. Entre com seu e-mail e senha. Em Configurações, cadastre uma vez as quantidades padrão e a distribuição por feira, além dos preços reais por sabor/feira.
+2. Use Nova semana e escolha quarta **ou** quinta. O dia de produção não muda as datas das três feiras.
+3. Em Produção, confira o padrão, informe os colaboradores e confirme as quantidades. Ajustar esta semana afeta só a confirmação atual. Carregar o padrão atual numa semana já aberta é uma ação explícita.
+4. Em Feiras, consulte cargas e preços. Não há venda por venda nem retorno diário obrigatório. Registre os gastos de cada colaborador com seu valor, quando necessário.
+5. No domingo ou na segunda, conte as sobras de cada sabor e confirme quanto foi preparado na feira. Zero precisa ser explícito. Perdas são separadas das sobras e não devem ser registradas nas duas quantidades.
+6. Em Financeiro → Caixa, registre dinheiro contado, Pix, débito, crédito, troco levado e retiradas. Escolha um fechamento semanal ou por feira; não some as duas formas. O caixa independe da contagem de pastéis.
+7. Use Registrar gasto em qualquer dia, mesmo sem semana aberta. Valor, descrição e data bastam. Nota é **opcional**. Marque Pago ou A pagar; registrar o pagamento depois atualiza a mesma despesa.
+8. No Histórico, filtre por período, tipo, pessoa e sabor; abra os dados e as correções. Cancelamento mantém o rastro. Exportar registros baixa o estado atual em JSON; versões anteriores ficam no D1.
 
-Em Configurar, o administrador define horários e preços por sabor e feira, ativa/inativa sabores e cria acessos da equipe. Operadores registram a rotina; não podem administrar preços ou acessos. A seção Minha senha permite trocar a senha e encerra as sessões anteriores.
+Administradores definem padrão, preços, horários e acessos. Colaboradores que produziram e pessoas que receberam pela feira não precisam de uma conta de usuário. A seção Minha senha permite alterar a senha e encerra sessões anteriores.
 
 ## Demonstração
 
-`/demonstracao` usa dados fictícios, pessoas e relógio simulados. As alterações não chamam a API operacional, não vão ao D1 e reiniciam ao recarregar. O aplicativo principal persiste seus registros no banco e exige sessão. A prévia HTML em `work/` tem o mesmo comportamento de demonstração.
+`/demonstracao` usa quantidades, preços, pessoas e relógio fictícios. As alterações não chamam a API operacional, não vão ao D1 e reiniciam ao recarregar. O banco do negócio começa sem padrões nem lançamentos inventados. Valores reais ainda devem ser fornecidos pela equipe.
 
 ## Quantidades e financeiro
 
-As quatro funções `estimated`, `revenue`, `available` e `stats` mantêm as fórmulas recuperadas literalmente, conferidas pelos testes:
+- Produção confirmada é o realizado na base; médias de preparo na feira permanecem previsões até o fechamento.
+- Na contagem semanal: saída estimada = produzido na base + preparado confirmado na feira − sobras − perdas. Sobras são contagem física final; não significam automaticamente desperdício.
+- Nos registros legados por feira: saída estimada = levado − retorno − perdas + ajuste. Saldo não alocado = produzido + reaproveitável de retornos concluídos − cargas, inclusive futuras. Os cálculos continuam legíveis sem converter a história.
+- Movimentação informada = dinheiro contado + Pix + débito + crédito + cartão legado + retiradas − troco. O cartão legado é mantido separado quando não houve detalhamento. Nunca lançar a venda na máquina e o depósito dela como duas entradas.
+- Diferença parcial = movimentação registrada − gastos vinculados à semana, pagos ou a pagar. Completude depende dos registros; não representa lucro completo nem saldo disponível em banco.
+- Faturamento de pastéis por quantidade é estimativa. Com preços diferentes e sobra semanal, usa uma faixa entre os preços das feiras; não inventa venda exata por feira. Não se soma esse valor aos recebimentos das máquinas, que podem incluir outros produtos.
 
-- Saída estimada = levado − retorno − perdas/consumo + ajuste. Em preparados na feira, o total preparado é informado no ajuste. Perdas já incluídas no retorno não entram novamente.
-- Saldo não alocado = produzido + reaproveitável de retornos concluídos − cargas, inclusive futuras. Não é uma contagem independente do estoque físico.
-- Receita registrada = dinheiro contado + Pix + cartão + retiradas − troco inicial. Inclua gastos pagos com dinheiro da feira e retiradas pessoais no campo Dinheiro retirado, uma vez.
-- Resultado parcial = receita dos caixas registrados − gastos da rodada. Cartão registrado não confirma depósito; faltam custos quando eles não foram informados.
+Preços capturados nas cargas e previsões de semanas existentes são preservados. Sobra entre semanas não tem transferência automática; não há custeio completo por pastel sem insumos e critérios reais.
 
-Preço guardado na carga é histórico. Uma mudança no catálogo não reescreve uma carga já registrada. Gastos podem ser atribuídos a uma feira ou à rodada; não há rateio automático. Retorno não é sinônimo de desperdício. Custo completo por pastel depende de insumos, volumes e critérios reais, que não foram fornecidos. Sobra entre rodadas não tem transferência automática.
+## Comprovantes opcionais
+
+Foto ou PDF pode ser anexado ao gasto ou posteriormente. Uma falha no envio preserva a despesa salva. Os arquivos exigem sessão do estabelecimento e ficam em tabela D1 separada, fora dos snapshots JSON, sem URLs públicas. JPEG, PNG, WebP e PDF; até 768 KB por arquivo, três por gasto e 50 MB por estabelecimento. Fotos grandes podem ser reduzidas no navegador antes do envio. Os bytes são conferidos no servidor, com limites de tamanho e mesma origem. A tabela adicional é criada de forma idempotente na primeira consulta autenticada; a migration `0002_optional_receipts.sql` registra a mesma estrutura para instalações novas.
+
+As 18 imagens de sabores em `public/images/sabores` são ilustrativas. Prompts e origem estão em `ORIGEM.json` e nos metadados dos arquivos; fotos reais podem substituí-las posteriormente.
 
 ## Acesso e dados
 
@@ -46,6 +53,7 @@ pnpm install --frozen-lockfile
 node node_modules/typescript/bin/tsc --noEmit
 node tests/model-contract.mjs
 node tests/workflow-contract.mjs
+node tests/weekly-contract.mjs
 npm run build
 python3 scripts/check-local.py
 ```

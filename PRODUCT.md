@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-React/TypeScript, Vinext/App Router, Vite, Cloudflare Workers/D1, Drizzle, Zod e framer-motion 12.23.24. Base recuperada do pacote V2, com fórmulas preservadas, acesso por sessão e rotinas corrigidas. App e dados separados do Carmelo.
+React/TypeScript, Vinext/App Router, Vite, Cloudflare Workers/D1, Drizzle, Zod e framer-motion 12.23.24. Base recuperada do pacote V2, com acesso por sessão e evolução semanal aprovada em 15/10/2026. App e dados separados do Carmelo.
 
 ## Users
 
@@ -16,7 +16,7 @@ João administra o sistema. Robson e Erly/Erli operam produção e feiras. Admin
 
 ## Product Purpose
 
-Organizar rodada, produção na base, carga, retorno/reaproveitamento informado e histórico, com financeiro agregado complementar. A equipe não registra venda por venda.
+Organizar a semana de produção e feiras, registrar gastos rapidamente e consultar fechamentos e histórico confiáveis. A equipe não registra venda por venda.
 
 ## Operating Context
 
@@ -29,20 +29,26 @@ Organizar rodada, produção na base, carga, retorno/reaproveitamento informado 
 
 ## Capabilities and Constraints
 
-- Card por sabor abre foco protegido. Salvar contagem → separar → salvar confirmado → próximo sabor. Mini linha do tempo, erros inline e campos preservados em rede/conflito/sessão expirada.
-- Preços por sabor e feira; preço capturado na carga preserva história.
-- Carga futura pode ser alterada sem reenviar a feira passada. Feira iniciada/encerrada fica protegida; correção administrativa usa motivo.
-- Retorno inclui preparo na feira e zero explícito. Reaproveitável não ultrapassa retorno. Perdas já incluídas no retorno não entram de novo.
-- Três retornos bastam para encerrar a operação. Caixa e gastos podem ser registrados depois.
-- Saída estimada, receita registrada, saldo não alocado e resultado parcial mantêm as quatro fórmulas recuperadas. Retorno não é desperdício nem resultado parcial lucro completo.
-- Histórico guarda snapshots e autoria; correções mantêm identidade. Reenvio é idempotente; concorrência usa versão.
-- Catálogo recuperado de 19 sabores é referência a validar com a equipe. Preços reais, custos, recipientes, volumes e horários não foram fornecidos.
-- Sobra entre rodadas não tem transferência automática; não prometer estoque físico auditado, custeio completo, banco conciliado ou backup automático.
-- Não ampliar para ERP, PDV, fiscal, delivery, IA no runtime ou ficha técnica obrigatória.
+- Configurações guarda o padrão por sabor e a distribuição prevista nas três feiras. Uma produção na quarta OU quinta confirma todas as quantidades da base e os colaboradores que participaram. Contas de acesso e colaboradores são identidades distintas.
+- Padrões não são realização. Médias dos sabores preparados na feira só entram como produção quando o gestor confirma a quantidade real no fechamento. Alterar o padrão não reescreve a previsão de semanas existentes; carregar o padrão atual numa semana é uma ação explícita.
+- Feiras oferece consulta das cargas e preços históricos. Correções mantêm motivo e autoria. Semana nova sugere contagem única de sobras no domingo ou segunda; registro posterior continua permitido. Campo vazio não é zero.
+- A contagem consolidada fecha a operação sem exigir caixa. O caixa pode ser fechado por semana ou por feira, separando dinheiro, Pix, débito e crédito. Registros semanais e diários do mesmo período não são somados duas vezes.
+- Gastos funcionam sem rodada: valor, descrição e data. Categoria, fornecedor/colaborador e vínculo com semana/feira completam o contexto. Nota ou comprovante é opcional e não condiciona salvar gasto, produção ou caixa.
+- Pago/A pagar pertence ao mesmo gasto. Registrar pagamento atualiza esse gasto; cancelamento retém registro e rastro, retirando seu efeito dos totais.
+- Comprovantes JPEG/PNG/WebP/PDF privados ficam em tabela D1 separada dos snapshots; até 768 KB por arquivo, três por gasto e 50 MB por estabelecimento nesta versão. Fotos grandes podem ser reduzidas antes do envio. Acesso exige sessão do mesmo estabelecimento; conteúdo é validado e falha do anexo não desfaz o gasto.
+- Custo de equipe: um gasto por colaborador, com valor variável e feira opcional. Fornecedores aparecem nos lançamentos; não têm acesso próprio nesta entrega.
+- Referência de faturamento dos pastéis é uma estimativa/faixa pelos preços históricos quando a sobra é consolidada. Não se soma às entradas reais e não representa lucro. Movimentação em máquinas não é saldo disponível em banco; bebidas e salgados podem compor as entradas.
+- Histórico filtra registros por período, tipo, autor e sabor, mostra dados confirmados e correção anterior; snapshots completos mantêm versões anteriores. Reenvio é idempotente; concorrência usa versão. Exportação JSON contém o estado atual, não os binários de comprovantes.
+- Semanas com contagem consolidada alimentam comparação de produção e sobras. Não fabricar tendência, recomendação ou lucro com registros incompletos.
+- Estados e cálculos legados por feira continuam legíveis. Não converter nem somar contagens antigas com contagem semanal. Fórmulas de saída e disponibilidade antigas permanecem; os agregadores evoluem para os fechamentos semanais e novas formas de pagamento.
+- 19 IDs de catálogo preservados, 18 sabores ativos: Brócolis tem brócolis, queijo, calabresa e bacon; o antigo item Calabresa e bacon fica inativo. Não rotular Brócolis como vegetariano.
+- Quantidades, preços e horários reais ainda não foram fornecidos. Não usar números da demonstração como padrão do negócio. Custos completos e unidades físicas precisam da equipe.
+- Sobra entre semanas não é transferida automaticamente. Não prometer estoque físico auditado, custeio completo, banco conciliado ou backup/restauração sem teste.
+- Estoque de bebidas/salgados, integrações, metas, envio direto por fornecedor com aprovação e permissões próprias ficam para etapas posteriores. Não criar módulos vazios nem ampliar para PDV, fiscal, delivery ou IA no runtime.
 
 ## Brand Commitments
 
-Vermelho do trailer, preto do avental e branco do boné. Referência iFood: produtos reconhecíveis, navegação clara e tarefa acessível no celular, sem checkout de consumidor. Autonomia de design concedida pelo usuário. Lato hospedada no projeto, controles familiares, toque de 44px, contraste e movimento reduzido. Imagem de pastel do pacote é ilustrativa; os demais sabores usam nome, cor, selo e ícone.
+Vermelho do trailer, preto do avental e branco do boné. Referência iFood: produtos reconhecíveis, navegação clara e tarefa acessível no celular, sem checkout de consumidor. Autonomia de design concedida pelo usuário. Lato hospedada no projeto, controles familiares, toque de 44px, contraste e movimento reduzido. Os 18 sabores ativos têm imagens ilustrativas produzidas no mesmo enquadramento, nomes e cores estáveis por ID. Fotos reais do trailer não foram acessadas; não usar imagens de negócios homônimos. As ilustrações não representam fotos reais do estabelecimento. A faixa inicial tem altura limitada, controles de negócio legíveis e ação rápida de gasto. Transições curtas de opacidade, campos preservados entre áreas e movimento reduzido.
 
 ## Product Principles
 

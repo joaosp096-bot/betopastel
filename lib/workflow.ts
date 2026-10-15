@@ -1,5 +1,12 @@
 import { z } from "zod";
 import {
+  evolutionOperationSchema,
+  applyEvolution,
+  initializeWeeklyRound,
+  applyExpense,
+  expenseFields,
+} from "./weekly-workflow";
+import {
   State,
   Round,
   Fair,
@@ -10,6 +17,7 @@ import {
   weekStart,
   stateSchema,
   flavorSchema,
+  readState,
 } from "./model";
 export type Actor = {
   userId: string;
@@ -33,9 +41,10 @@ const correction = {
   correction: z.boolean().optional(),
   reason: z.string().trim().max(300).optional(),
 };
-export const operationSchema = z.discriminatedUnion("kind", [
+const legacyOperationSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("round"),
+    returnMode: z.enum(["semana", "feira"]).default("semana"),
     start: date,
     productionDay: date.optional(),
   }),
@@ -87,6 +96,8 @@ export const operationSchema = z.discriminatedUnion("kind", [
     cash: money,
     pix: money,
     card: money,
+    debit: money.default(0),
+    credit: money.default(0),
     withdrawal: money,
     ...correction,
   }),
@@ -100,8 +111,9 @@ export const operationSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("expense"),
-    roundId: id,
+    ...expenseFields,
     expenseId: id.optional(),
+    newExpenseId: z.string().uuid().optional(),
     fairId: z.string().max(80).default(""),
     date,
     description: z.string().trim().min(1).max(200),
@@ -111,7 +123,7 @@ export const operationSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("expense-cancel"),
-    roundId: id,
+    roundId: z.string().max(80).default(""),
     expenseId: id,
     reason: z.string().trim().min(3).max(300),
   }),
@@ -123,6 +135,10 @@ export const operationSchema = z.discriminatedUnion("kind", [
     kind: z.literal("catalog"),
     flavors: z.array(flavorSchema).min(1).max(100),
   }),
+]);
+export const operationSchema = z.union([
+  legacyOperationSchema,
+  evolutionOperationSchema,
 ]);
 export type Operation = z.infer<typeof operationSchema>;
 export function localClock(now: Date) {
@@ -329,6 +345,7 @@ function record(
     day,
     savedAt: c.now.toISOString(),
     savedBy: c.name,
+    savedById: c.userId,
     revision: (old?.revision || 0) + 1,
     values,
   };
@@ -352,9 +369,17 @@ export function applyOperation(
   raw: unknown,
   c: Context,
 ): { state: State; action: string; receipt?: State["records"][number] } {
-  const op = operationSchema.parse(raw),
-    s = stateSchema.parse(structuredClone(input)),
+  const parsed = operationSchema.parse(raw),
+    s = readState(structuredClone(input)),
     clock = localClock(c.now);
+  const evolution = applyEvolution(s, parsed, c, clock.day);
+  if (evolution)
+    return { ...evolution, state: stateSchema.parse(evolution.state) };
+  const op = legacyOperationSchema.parse(parsed);
+  if (op.kind === "expense" || op.kind === "expense-cancel") {
+    const result = applyExpense(s, op, c, clock.day);
+    return { ...result, state: stateSchema.parse(result.state) };
+  }
   let action = "",
     receipt: State["records"][number] | undefined;
   if (op.kind === "round") {
@@ -374,6 +399,8 @@ export function applyOperation(
       f.closeTime = t.closeTime;
       r.fairs.push(f);
     }
+    initializeWeeklyRound(s, r);
+    r.returnMode = op.returnMode;
     s.rounds.push(r);
     action = "Abrir rodada";
   } else if (op.kind === "settings") {
@@ -400,6 +427,15 @@ export function applyOperation(
     for (const old of s.flavors)
       if (!op.flavors.some((f) => f.id === old.id))
         refuse("Inative o sabor para preservar o histórico.");
+    if (
+      op.flavors.some(
+        (f) =>
+          f.active && f.name.toLocaleLowerCase("pt-BR") === "calabresa e bacon",
+      )
+    )
+      refuse(
+        "Calabresa e bacon são ingredientes do Brócolis. Preserve esse item inativo.",
+      );
     s.flavors = op.flavors;
     for (const r of s.rounds.filter((r) => r.status === "aberta"))
       for (const flavor of s.flavors.filter((f) => f.active)) {
@@ -421,6 +457,29 @@ export function applyOperation(
                 : flavor.price,
             });
       }
+    // A week opened before initial setup may still have zero prices. Refresh only
+    // future, unconfirmed loads; captured allocations and completed production stay historical.
+    for (const r of s.rounds.filter(
+      (r) => r.status === "aberta" && !r.productionClosed,
+    ))
+      for (const f of r.fairs.filter((f) => !loadLocked(f, c.now)))
+        for (const l of f.lines) {
+          if (
+            s.records.some(
+              (e) =>
+                e.roundId === r.id &&
+                e.kind === "allocation" &&
+                e.flavorId === l.flavorId &&
+                (!e.fairId || e.fairId === f.id),
+            )
+          )
+            continue;
+          const flavor = s.flavors.find((flavor) => flavor.id === l.flavorId);
+          if (flavor)
+            l.price = f.scheduleKey
+              ? (flavor.prices[f.scheduleKey] ?? flavor.price)
+              : flavor.price;
+        }
     action = "Atualizar sabores e preços";
   } else {
     const r = s.rounds.find((r) => r.id === op.roundId);
@@ -556,7 +615,7 @@ export function applyOperation(
         );
         action = "Concluir produção";
       } else if (op.kind === "close-round") {
-        if (r.fairs.some((f) => !f.returnSealed))
+        if (!r.weeklyReturn?.closed && r.fairs.some((f) => !f.returnSealed))
           refuse("Conclua os três retornos primeiro.");
         r.status = "concluida";
         receipt = record(
@@ -574,35 +633,6 @@ export function applyOperation(
           },
         );
         action = "Concluir operação da rodada";
-      } else if (op.kind === "expense") {
-        if (op.fairId && !r.fairs.some((f) => f.id === op.fairId))
-          refuse("Feira não encontrada.");
-        const old = op.expenseId
-          ? s.expenses.find((e) => e.id === op.expenseId && e.roundId === r.id)
-          : undefined;
-        if (op.expenseId && !old) refuse("Gasto não encontrado.");
-        if (old) checkCorrection(op, true, c);
-        const expense = {
-          id: old?.id || uid(),
-          roundId: r.id,
-          fairId: op.fairId,
-          date: op.date,
-          category: op.category,
-          description: op.description,
-          amount: op.amount,
-        };
-        s.expenses = old
-          ? s.expenses.map((e) => (e.id === old.id ? expense : e))
-          : [...s.expenses, expense];
-        action =
-          (old ? "Corrigir gasto: " : "Registrar gasto: ") + op.description;
-      } else if (op.kind === "expense-cancel") {
-        if (
-          !s.expenses.some((e) => e.id === op.expenseId && e.roundId === r.id)
-        )
-          refuse("Gasto não encontrado.");
-        s.expenses = s.expenses.filter((e) => e.id !== op.expenseId);
-        action = "Cancelar gasto: " + op.reason;
       } else {
         const f = r.fairs.find((f) => f.id === op.fairId);
         if (!f) refuse("Feira não encontrada.");
@@ -645,6 +675,11 @@ export function applyOperation(
           if (!closingOpen(f, c.now))
             refuse("Registre o retorno ou caixa a partir do dia desta feira.");
           if (op.kind === "return") {
+            if (r.weeklyReturn?.closed)
+              refuse(
+                "Esta semana já tem contagem consolidada. Corrija a contagem semanal.",
+              );
+            r.returnMode = "feira";
             if (f.returnSealed) checkCorrection(op, clock.day <= r.end, c);
             const l = f.lines.find((l) => l.flavorId === op.flavorId);
             if (!l) refuse("Sabor não encontrado.");
@@ -678,6 +713,11 @@ export function applyOperation(
             if (f.returnSealed) f.status = "retorno";
             action = "Salvar retorno";
           } else if (op.kind === "cash") {
+            if (r.weeklyCash?.closed)
+              refuse(
+                "Esta semana já tem caixa semanal. Corrija esse fechamento.",
+              );
+            r.cashMode = "diario";
             if (f.cash.closed) checkCorrection(op, true, c);
             if (f.status === "planejada") f.status = "em_feira";
             f.cash = {
@@ -686,6 +726,8 @@ export function applyOperation(
               cash: op.cash,
               pix: op.pix,
               card: op.card,
+              debit: op.debit,
+              credit: op.credit,
               withdrawal: op.withdrawal,
             };
             receipt = record(

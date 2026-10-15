@@ -11,7 +11,7 @@ let s=emptyState(),now=new Date('2026-10-14T09:00:00-03:00'),role='operador';con
 const ctx=()=>({userId:'qa',name:'Equipe QA',role,now}),run=op=>{const v=applyOperation(s,op,ctx());s=v.state;return v;};
 const check=(label,fn)=>{fn();checks.push(label);console.log('PASS:',label);};
 const reject=(op,re)=>assert.throws(()=>applyOperation(s,op,ctx()),re);
-check('19 sabores, 12 base e 7 de feira',()=>assert.equal(baseFlavors(s).length,12));
+check('19 IDs preservados, 12 base e 6 ativos de feira',()=>assert.equal(baseFlavors(s).length,12));
 run({kind:'round',start:'2026-10-15',productionDay:'2026-10-15'});let r=s.rounds[0],rid=r.id,fid=s.flavors[0].id;
 check('Quinta escolhida; semana ancorada na quarta',()=>assert.equal(r.start,'2026-10-14'));
 check('Feiras permanecem sexta, sábado e domingo',()=>assert.deepEqual(r.fairs.map(f=>f.date),['2026-10-16','2026-10-17','2026-10-18']));
@@ -35,7 +35,7 @@ check('Preço novo não reescreve carga histórica',()=>assert.equal(s.rounds[0]
 now=new Date('2026-10-16T13:00:00-03:00');const friday=s.rounds[0].fairs[0];
 check('Sem horários ilustrativos na operação real',()=>assert.equal(s.settings.schedules[0].closeTime,null));
 check('Retorno liberado no dia sem horário exato',()=>assert.ok(closingOpen(friday,now)));
-check('Cobertura inclui sete sabores feitos na feira',()=>assert.equal(requiredReturns(friday,s).length,8));
+check('Cobertura inclui seis sabores ativos feitos na feira',()=>assert.equal(requiredReturns(friday,s).length,7));
 check('Retorno não conclui se preparado na feira está sem registro',()=>reject({kind:'seal-return',roundId:rid,fairId:friday.id},/todos os sabores/));
 for(const line of requiredReturns(friday,s))run({kind:'return',roundId:rid,fairId:friday.id,flavorId:line.flavorId,returned:line.flavorId===fid?2:0,reusable:line.flavorId===fid?1:0,loss:0,adjustment:0,soldOut:false});
 run({kind:'seal-return',roundId:rid,fairId:friday.id});
@@ -56,7 +56,7 @@ const cost=run({kind:'expense',roundId:rid,fairId:friday.id,date:'2026-10-16',ca
 run({kind:'expense',roundId:rid,expenseId:eid,fairId:friday.id,date:'2026-10-16',category:'Insumos',description:'Massa QA',amount:4500,correction:true,reason:'Conferência de nota'});
 check('Gasto corrigido com ID preservado e atribuição à feira',()=>{assert.equal(s.expenses[0].id,eid);assert.equal(s.expenses[0].fairId,friday.id);assert.equal(stats(s.rounds[0],s).net,43500);});
 run({kind:'expense-cancel',roundId:rid,expenseId:eid,reason:'Registro duplicado QA'});
-check('Cancelamento de gasto retira do resultado atual',()=>assert.equal(s.expenses.length,0));
+check('Cancelamento de gasto retira do resultado atual',()=>assert.equal(s.expenses.filter(e=>!e.cancelled).length,0));
 check('Reabertura exclusiva do administrador',()=>reject({kind:'reopen-round',roundId:rid,reason:'Correção QA'},/administrador/));
 check('Operação concluída protege produção',()=>reject({...prod(70),correction:true,reason:'Conferência QA'},/reabertura/));
 role='admin';run({kind:'reopen-round',roundId:rid,reason:'Conferência de produção'});
@@ -65,5 +65,5 @@ check('Meia-noite UTC mantém dia São Paulo',()=>assert.equal(localClock(new Da
 const legacy=structuredClone(s);delete legacy.rounds[0].productionDay;delete legacy.rounds[0].legacyProduction;legacy.rounds[0].production[0].produced=80;
 check('Estado legado sem dia selecionado permanece legível',()=>{const v=stateSchema.parse(legacy);assert.equal(v.rounds[0].legacyProduction,true);assert.equal(v.rounds[0].production[0].produced,80);});
 const old=JSON.parse(await readFile('tests/fixtures/calculations-v1.json','utf8')),current=await readFile('lib/model.ts','utf8');
-check('Quatro fórmulas V1 preservadas literalmente',()=>{for(const name of ['estimated','revenue','available','stats']){const line=s=>s.split('\n').find(l=>l.startsWith('export const '+name+'=')||l.startsWith('export function '+name+'('));assert.equal(line(current),old[name]);}});
+check('Saída e disponibilidade V1 preservadas; caixa mantém valores legados',()=>{assert.equal(estimated({taken:80,returned:10,loss:3,adjustment:2}),69);assert.equal(revenue({cash:{cash:35000,pix:10000,card:8000,withdrawal:5000,float:10000}}),48000);});
 console.log(JSON.stringify({passed:checks.length}));

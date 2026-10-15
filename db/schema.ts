@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  blob,
+} from "drizzle-orm/sqlite-core";
 export const workspaces = sqliteTable("beto_workspaces", {
   owner: text("owner").primaryKey(),
   payload: text("payload").notNull(),
@@ -42,4 +48,17 @@ export const attempts = sqliteTable("beto_auth_attempts", {
   key: text("key").primaryKey(),
   attempts: integer("attempts").notNull(),
   expiresAt: integer("expires_at").notNull(),
+});
+
+/** Private optional files are separate from versioned workspace JSON. */
+export const receipts = sqliteTable("beto_receipts", {
+  id: text("id").primaryKey(),
+  owner: text("owner").notNull(),
+  expenseId: text("expense_id").notNull(),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  size: integer("size").notNull(),
+  body: blob("body", { mode: "buffer" }).notNull(),
+  created: text("created").notNull(),
+  createdBy: text("created_by").notNull(),
 });
