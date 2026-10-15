@@ -1,0 +1,1 @@
+Lato, Google Fonts, SIL Open Font License. Downloaded 14/10/2026 from fonts.gstatic.com via fonts.googleapis.com/css2?family=Lato:wght@400;700;900. Original TTF files hosted locally, no glyphs modified.

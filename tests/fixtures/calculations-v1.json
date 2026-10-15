@@ -1,0 +1,6 @@
+{
+  "estimated": "export const estimated=(l:Line)=>l.taken-l.returned-l.loss+l.adjustment;",
+  "revenue": "export const revenue=(f:Fair)=>f.cash.cash+f.cash.pix+f.cash.card+f.cash.withdrawal-f.cash.float;",
+  "available": "export function available(r:Round,flavorId:string,excludeFair?:string){return (r.production.find(p=>p.flavorId===flavorId)?.produced||0)+r.fairs.filter(f=>f.id!==excludeFair&&f.status==='retorno').reduce((a,f)=>a+(f.lines.find(l=>l.flavorId===flavorId)?.reusable||0),0)-r.fairs.filter(f=>f.id!==excludeFair).reduce((a,f)=>a+(f.lines.find(l=>l.flavorId===flavorId)?.taken||0),0);}",
+  "stats": "export function stats(r:Round|undefined,s:State){const done=r?.fairs.filter(f=>f.status==='retorno')||[];const lines=done.flatMap(f=>f.lines);const taken=lines.reduce((a,l)=>a+l.taken,0),returned=lines.reduce((a,l)=>a+l.returned,0);const cash=r?.fairs.filter(f=>f.cash.closed)||[];const gross=cash.reduce((a,f)=>a+revenue(f),0),cost=s.expenses.filter(e=>e.roundId===r?.id).reduce((a,e)=>a+e.amount,0);return {produced:r?.production.reduce((a,p)=>a+p.produced,0)||0,taken,returned,output:lines.reduce((a,l)=>a+estimated(l),0),returnRate:taken?100*returned/taken:null,gross,cost,net:gross-cost,cashCount:cash.length};}"
+}

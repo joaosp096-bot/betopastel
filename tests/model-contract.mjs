@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {emptyState,newRound,newFair,available,estimated,revenue,stats,stateSchema} from '../lib/model.ts';
+const s=emptyState(),r=newRound(s.flavors,'2026-09-30');s.rounds=[r];
+s.flavors[0].price=1200;r.production[0].produced=120;
+const f=newFair(r,s.flavors,'Feira','2026-10-02');r.fairs=[f];const l=f.lines[0];l.taken=70;
+assert.equal(available(r,l.flavorId),50);
+f.status='retorno';l.returned=10;l.reusable=7;l.loss=2;
+assert.equal(estimated(l),58);assert.equal(available(r,l.flavorId),57);
+s.flavors[0].price=1500;assert.equal(l.price,1200);
+f.cash={closed:true,float:15000,cash:35000,pix:40000,card:9600,withdrawal:0};
+assert.equal(revenue(f),69600);
+s.expenses=[{id:'custo',roundId:r.id,fairId:f.id,date:f.date,category:'Insumos',description:'Massa',amount:23000}];
+assert.equal(stats(r,s).net,46600);assert.equal(stats(r,s).returnRate,100*10/70);
+f.cash.closed=false;assert.equal(stats(r,s).gross,0);
+r.status='concluida';assert.equal(stateSchema.safeParse(s).success,false);
+console.log('PASS: Contratos de saída estimada, disponibilidade, preço histórico, caixa, resultado e fechamento');
