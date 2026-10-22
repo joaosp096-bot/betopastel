@@ -26,9 +26,9 @@ Administradores definem padrão, preços, horários e acessos. Colaboradores que
 - Nos registros legados por feira: saída estimada = levado − retorno − perdas + ajuste. Saldo não alocado = produzido + reaproveitável de retornos concluídos − cargas, inclusive futuras. Os cálculos continuam legíveis sem converter a história.
 - Movimentação informada = dinheiro contado + Pix + débito + crédito + cartão legado + retiradas − troco. O cartão legado é mantido separado quando não houve detalhamento. Nunca lançar a venda na máquina e o depósito dela como duas entradas.
 - Diferença parcial = movimentação registrada − gastos vinculados à semana, pagos ou a pagar. Completude depende dos registros; não representa lucro completo nem saldo disponível em banco.
-- Faturamento de pastéis por quantidade é estimativa. Com preços diferentes e sobra semanal, usa uma faixa entre os preços das feiras; não inventa venda exata por feira. Não se soma esse valor aos recebimentos das máquinas, que podem incluir outros produtos.
+- Faturamento de pastéis por quantidade é estimativa. Semanas antigas usam uma faixa; semanas novas usam a distribuição versionada, cancelamentos, margem explícita e preços por destino; não inventa venda exata por feira. Não se soma esse valor aos recebimentos das máquinas, que podem incluir outros produtos.
 
-Preços capturados nas cargas e previsões de semanas existentes são preservados. Sobra entre semanas não tem transferência automática; não há custeio completo por pastel sem insumos e critérios reais.
+Preços capturados nas cargas e previsões de semanas existentes são preservados. Sobra entre semanas passa por conferência de pronto, descarte e desmontagem; reabrir a origem reabre dependentes; não há custeio completo por pastel sem insumos e critérios reais.
 
 ## Comprovantes opcionais
 
@@ -54,6 +54,7 @@ node node_modules/typescript/bin/tsc --noEmit
 node tests/model-contract.mjs
 node tests/workflow-contract.mjs
 node tests/weekly-contract.mjs
+node tests/operation-contract.mjs
 npm run build
 python3 scripts/check-local.py
 ```
@@ -74,3 +75,15 @@ npx wrangler deploy --config dist/server/wrangler.json
 Configure os secrets de bootstrap no Worker e mantenha a proteção da API por sessão. O schema remoto é preparado no banco exclusivo antes do primeiro uso; não execute os testes ou migrations em recursos Carmelo. Confira publicação e login reais antes de apresentar a URL como operacional.
 
 O projeto começa sem registros, metas ou preços operacionais inventados. O cardápio recuperado tem 19 sabores e deve ser conferido com a equipe. A imagem do pastel é ilustrativa; Lato vem do Google Fonts sob SIL Open Font License. Interface orientada pelas referências iFood e product-card-food, com Impeccable, UI UX Pro Max, Taste e Humanizer.
+
+## Operação semanal V2 (22/10/2026)
+
+Novas semanas usam `weekly-allocation-v2`; não convertem registros antigos. Produção nova, saldo aproveitado, reserva e cargas têm papéis distintos. Extras podem ficar pendentes. Cancelamento transfere a quantidade para o próximo destino ativo ou conserva estoque. O resumo mostra valores estimados e pendências, sem confundir preço ausente com venda de valor zero.
+
+Massinhas usam lotes independentes de semanas; salgados comprados têm saldo, compra, sobra e ajuste, com distribuição opcional. A tabela da foto é uma proposta revisável em Configurações, nunca um seed automático. Preços e margem reais continuam a cargo da equipe.
+
+O fechamento pode ocorrer a partir da última feira ativa, ou da produção quando todas foram canceladas. Fechamento sem distribuição coerente registra quantidades e mantém o valor pendente. Corrigir uma semana encerrada exige administrador, motivo e nova conferência; os fechamentos antigos continuam nos snapshots. Rascunhos são locais e exigem revisão explícita quando a versão salva muda.
+
+`tests/operation-browser.py` verifica o fluxo autenticado, recuperação, falha de rede, conflito e reautenticação no QA local vazio. `tests/operation-captures.py` avalia a demo em 1440, 390 e 320 px com axe e movimento reduzido. Inicie `scripts/qa-runtime.mjs browser <diretório-local-vazio>` somente depois do build terminar.
+
+A rota pública `/api/version` expõe apenas identificador de release e commit do build para verificar publicação, sem configuração ou secrets. Ver [ENTREGA_OPERACAO.md](ENTREGA_OPERACAO.md) para uso, roteiro de demonstração e recuperação.
