@@ -110,6 +110,25 @@ check(code==200 and len(historypage['revisions'])==40 and all('payload' not in r
 code,older,_=call('/api/history?before='+str(historypage['nextBefore']),cookie=admin)
 check(code==200 and older['revisions'] and not set(r['version'] for r in older['revisions']) & set(r['version'] for r in historypage['revisions']),'Histórico anterior acessível sem sobrepor páginas')
 code,_,_=call('/api/history');check(code==401,'Lista paginada também exige sessão')
+# New methodology is persisted by the same atomic API, without replacing legacy snapshots.
+v2start=start-datetime.timedelta(days=7)
+write({'kind':'round','start':str(v2start),'methodology':'weekly-allocation-v2'})
+v2=state['state']['rounds'][-1];v2id=v2['id'];snapshot=v2['operation']['flavors']
+prepare={'kind':'week-prepare','roundId':v2id,'day':str(v2start),'contributors':['Equipe QA'],'flourKg':50,'carry':[],
+ 'lines':[{'flavorId':f['id'],'quantity':100,'allocations':{'sexta':30,'sabado':30,'domingo':40}} for f in snapshot if f['kind']=='base'],
+ 'extras':[{'flavorId':f['id'],'allocations':{'sexta':2,'sabado':2,'domingo':2}} for f in snapshot if f['kind']=='na_feira']}
+write(prepare,operator);check(state['state']['rounds'][-1]['productionClosed'],'Produção V2 persiste com farinha e colaboradores')
+write({'kind':'week-fair','roundId':v2id,'key':'sexta','cancelled':True,'note':'Chuva QA'},operator)
+closure={'kind':'week-close','roundId':v2id,'day':str(local),'margin':2,'notes':'Teste isolado',
+ 'lines':[{'flavorId':f['id'],'returned':10,'nonSale':{'sexta':None,'sabado':None,'domingo':None}} for f in snapshot if f['kind']=='base'],
+ 'extras':[{'flavorId':f['id'],'values':{d:{'mode':'pending','quantity':None} for d in ['sexta','sabado','domingo']}} for f in snapshot if f['kind']=='na_feira']}
+reqid=str(uuid.uuid4());oldversion=version;write(closure,operator,reqid)
+code,replayed,_=call('/api/state','PUT',{'operation':closure,'version':oldversion,'requestId':reqid},operator)
+check(code==200 and replayed.get('idempotent'),'Reenvio do fechamento V2 não duplica revisão nem transferência')
+code,persisted,_=call(cookie=admin)
+check(persisted['state']['rounds'][-1]['operation']['closing']['extras'][0]['values']['sexta']['quantity'] is None and persisted['state']['rounds'][-1]['status']=='concluida','Recarga mantém extras pendentes e fechamento V2')
+write({'kind':'week-reopen','roundId':v2id,'reason':'Correção QA'},operator,expected=400)
+check(True,'Reabertura V2 exige administrador na API')
 code,_,_=call('/api/auth/logout','POST',cookie=operator);check(code==200,'Logout confirma revogação')
 code,_,_=call(cookie=operator);check(code==401,'Cookie revogado não acessa mais dados')
 operator,_=login('erly@example.test','qa-operator-2026',ip='203.0.113.3')

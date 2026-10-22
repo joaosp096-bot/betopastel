@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { operationSchemaV2, doughBatchSchema } from "./operation-model.ts";
+import { initOperation, weekEstimate } from "./operation-domain.ts";
 const id = z.string().min(1).max(80),
   qty = z.number().int().min(0).max(1000000),
   money = z.number().int().min(0).max(100000000),
@@ -91,6 +93,7 @@ const roundSchema = z
     status: z.enum(["aberta", "concluida"]),
     productionDay: date.nullable().default(null),
     productionClosed: z.boolean().default(false),
+    operation: operationSchemaV2.optional(),
     returnMode: z.enum(["feira", "semana"]).default("feira"),
     cashMode: z.enum(["diario", "semanal"]).default("diario"),
     weeklyReturn: weeklyReturnSchema.nullable().default(null),
@@ -189,6 +192,7 @@ export const defaultSettings = () => ({
 export const stateSchema = z
   .object({
     records: z.array(recordSchema).max(20000).default([]),
+    doughBatches: z.array(doughBatchSchema).max(1000).default([]),
     settings: z
       .object({
         productionTemplate: z.array(templateLineSchema).max(100).default([]),
@@ -208,6 +212,7 @@ export const stateSchema = z
       !unique(s.flavors) ||
       !unique(s.rounds) ||
       !unique(s.expenses) ||
+      !unique(s.doughBatches) ||
       !unique(s.records) ||
       new Set(s.records.map((v) => v.key)).size !== s.records.length
     )
@@ -229,6 +234,18 @@ export const stateSchema = z
     }
     const allFairs = new Set<string>();
     for (const r of s.rounds) {
+      if (r.operation) {
+        const o = r.operation;
+        if (new Set(o.fairs.map(f => f.key)).size !== 3 || new Set(o.flavors.map(f => f.id)).size !== o.flavors.length || new Set(o.snacks.map(l => l.id)).size !== o.snacks.length) fail("Itens duplicados na conferência semanal");
+        if (o.flavors.some(f => !flavors.has(f.id))) fail("Sabor inexistente na conferência semanal");
+        if (o.sourceId && (!s.rounds.some(x => x.id === o.sourceId && x.start < r.start) || o.sourceId === r.id)) fail("Origem de saldo inválida");
+        if (o.closing && (!r.productionClosed || r.status !== "concluida")) fail("Fechamento exige produção confirmada");
+        if (r.productionClosed) for (const f of o.flavors.filter(f => f.kind === "base")) {
+          const available = (r.production.find(p => p.flavorId === f.id)?.produced ?? 0) + (o.carry.find(c => c.flavorId === f.id)?.ready ?? 0);
+          const taken = r.fairs.reduce((n, fair) => n + (fair.lines.find(l => l.flavorId === f.id)?.taken ?? 0), 0);
+          if (taken > available) fail("Carga supera produção e saldo aproveitado");
+        }
+      }
       if (!unique(r.fairs)) fail("Feira duplicada");
       if (
         new Set(r.production.map((v) => v.flavorId)).size !==
@@ -277,6 +294,7 @@ export const stateSchema = z
       if (
         r.status === "concluida" &&
         !r.weeklyReturn?.closed &&
+        !r.operation?.closing &&
         r.fairs.some((f) => !f.returnSealed)
       )
         fail("Há retorno pendente");
@@ -368,6 +386,7 @@ export const flavorCatalog = [
 export function emptyState(): State {
   return {
     records: [],
+    doughBatches: [],
     settings: defaultSettings(),
     flavors: flavorCatalog.map(([name, prepKind], i) => ({
       id: "sabor-" + i,
@@ -456,6 +475,7 @@ export function available(r: Round, flavorId: string, excludeFair?: string) {
   );
 }
 export function stats(r: Round | undefined, s: State) {
+  const operation = r?.operation ? weekEstimate(r) : null;
   const done = r?.fairs.filter((f) => f.status === "retorno") || [],
     lines = done.flatMap((f) => f.lines);
   const weekly = r?.weeklyReturn?.closed ? r.weeklyReturn : null;
@@ -481,11 +501,11 @@ export function stats(r: Round | undefined, s: State) {
     ? taken - returned - weekly.lines.reduce((a, l) => a + l.loss, 0)
     : lines.reduce((a, l) => a + estimated(l), 0);
   return {
-    produced,
-    taken,
-    returned,
-    output,
-    returnRate: taken ? (100 * returned) / taken : null,
+    produced: operation?.produced ?? produced,
+    taken: operation?.taken ?? taken,
+    returned: operation?.returned ?? returned,
+    output: operation?.output ?? output,
+    returnRate: operation ? (operation.taken && operation.returned !== null ? 100 * operation.returned / operation.taken : null) : taken ? (100 * returned) / taken : null,
     gross,
     cost,
     net: gross - cost,
@@ -559,6 +579,7 @@ export function demoState(): State {
       l.planned =
         s.settings.productionTemplate.find((t) => t.flavorId === l.flavorId)
           ?.allocations[f.scheduleKey!] || 0;
+  r.operation = initOperation(s, r);
   s.rounds = [r];
   return s;
 }
