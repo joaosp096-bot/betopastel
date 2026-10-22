@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { operationCommands, applyWeeklyOperation } from "./operation-workflow";
+import { initOperation } from "./operation-domain";
 import {
   evolutionOperationSchema,
   applyEvolution,
@@ -44,6 +46,7 @@ const correction = {
 const legacyOperationSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("round"),
+    methodology: z.literal("weekly-allocation-v2").optional(),
     returnMode: z.enum(["semana", "feira"]).default("semana"),
     start: date,
     productionDay: date.optional(),
@@ -139,6 +142,7 @@ const legacyOperationSchema = z.discriminatedUnion("kind", [
 export const operationSchema = z.union([
   legacyOperationSchema,
   evolutionOperationSchema,
+  operationCommands,
 ]);
 export type Operation = z.infer<typeof operationSchema>;
 export function localClock(now: Date) {
@@ -372,6 +376,10 @@ export function applyOperation(
   const parsed = operationSchema.parse(raw),
     s = readState(structuredClone(input)),
     clock = localClock(c.now);
+  if ("roundId" in parsed && s.rounds.find(r => r.id === parsed.roundId)?.operation && ["production-confirm", "weekly-return", "production", "allocation", "load", "confirm-load", "return", "seal-production", "seal-return", "close-round", "reopen-round", "production-day"].includes(parsed.kind))
+    refuse("Use a conferência semanal e sua opção de correção para preservar os saldos.");
+  const weekly = applyWeeklyOperation(s, parsed, c, clock.day);
+  if (weekly) return { ...weekly, state: stateSchema.parse(weekly.state) };
   const evolution = applyEvolution(s, parsed, c, clock.day);
   if (evolution)
     return { ...evolution, state: stateSchema.parse(evolution.state) };
@@ -400,6 +408,10 @@ export function applyOperation(
       r.fairs.push(f);
     }
     initializeWeeklyRound(s, r);
+    if (op.methodology) {
+      if (s.rounds.some(x => x.operation && x.start >= start)) refuse("Abra a próxima semana depois da última existente para preservar o saldo anterior.");
+      r.operation = initOperation(s, r);
+    }
     r.returnMode = op.returnMode;
     s.rounds.push(r);
     action = "Abrir rodada";
@@ -413,7 +425,7 @@ export function applyOperation(
       f.offset = { sexta: 2, sabado: 3, domingo: 4 }[f.key];
     }
     s.settings = op.settings;
-    for (const r of s.rounds.filter((r) => r.status === "aberta"))
+    for (const r of s.rounds.filter((r) => r.status === "aberta" && !r.operation))
       for (const f of r.fairs) {
         const t = s.settings.schedules.find((t) => t.key === f.scheduleKey);
         if (t && !hasStarted(f, c.now)) {

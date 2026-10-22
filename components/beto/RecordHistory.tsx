@@ -56,6 +56,28 @@ const fields: Record<string, string> = {
   day: "Dia",
   phase: "Etapa",
   pendingCash: "Caixas pendentes",
+  carry: "Revisão do saldo anterior",
+  ready: "Pastéis prontos aproveitados",
+  discarded: "Descartados",
+  dismantled: "Desmontados",
+  flourKg: "Massa batida (kg de farinha)",
+  margin: "Margem de saídas sem venda",
+  nonSale: "Saídas sem venda informadas",
+  extras: "Extras feitos na feira",
+  values: "Conferência por feira",
+  mode: "Tipo da informação",
+  note: "Contexto da feira",
+  notes: "Observações",
+  prices: "Preços",
+  unitPrice: "Preço unitário",
+  purchased: "Comprados",
+  remaining: "Sobra final",
+  observation: "Conferência do lote",
+  confirmedOn: "Conferido em",
+  endedOn: "Dia exato em que acabou",
+  soldByFair: "Distribuição informada",
+  opening: "Saldo anterior",
+  lines: "Itens conferidos",
 };
 const moneyFields = new Set([
   "amount",
@@ -67,8 +89,9 @@ const moneyFields = new Set([
   "float",
   "withdrawal",
   "price",
+  "unitPrice",
 ]);
-const hiddenFields = new Set(["id", "key", "roundId", "flavorId", "fairId"]);
+const hiddenFields = new Set(["id", "key", "roundId", "flavorId", "fairId", "kind", "methodology"]);
 export function RecordValues({
   value,
   state,
@@ -137,6 +160,19 @@ export function RecordValues({
       return: "Sobras",
       round: "Semana",
       load: "Carga",
+      "week-prepare": "Conferência da produção",
+      "week-close": "Fechamento semanal",
+      "week-fair": "Situação da feira",
+      "week-reopen": "Reabertura e revisão dos saldos seguintes",
+      "week-pattern": "Padrão carregado para conferência",
+      "week-prices": "Preços históricos corrigidos",
+      "snack-count": "Conferência dos salgados",
+      "dough-batch": "Lote de massinhas",
+      "dough-observe": "Contagem do lote",
+      "photo-template": "Padrão da foto conferido",
+      pending: "Pendente",
+      count: "Contagem informada",
+      estimate: "Estimativa informada",
     };
   return <span>{translations[text] || text}</span>;
 }

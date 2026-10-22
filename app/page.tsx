@@ -86,6 +86,8 @@ import {
 } from "@/components/beto/Management";
 import { RecordHistory } from "@/components/beto/RecordHistory";
 import { ExpenseEntry } from "@/components/beto/ExpenseEntry";
+import { SeasonWorkspace, WeekSummary } from "@/components/beto/SeasonWorkspace";
+import { PhotoTemplate } from "@/components/beto/PhotoTemplate";
 type Screen =
   | "hoje"
   | "producao"
@@ -736,6 +738,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
     if (modal.kind === "round")
       op = {
         kind: "round",
+        methodology: "weekly-allocation-v2",
         returnMode: "semana",
         start: draft.start,
         productionDay: draft.productionDay,
@@ -1018,6 +1021,8 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
               <div className="saveState" aria-live="polite">
                 {busy ? (
                   "Confirmando registro…"
+                ) : managementDirty || configDirty ? (
+                  "Alterações ainda não enviadas"
                 ) : saved ? (
                   <>
                     <Check size={17} />
@@ -1062,7 +1067,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                     aria-label="Simular pessoa"
                     value={actor.name}
                     onChange={(e) => {
-                      if (task || modal) {
+                      if (task || modal || managementDirty || configDirty) {
                         toast.warning(
                           "Feche o formulário antes de mudar a pessoa.",
                         );
@@ -1117,6 +1122,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                   </button>
                   <button
                     className="btn secondary m-global-expense"
+                    hidden={screen !== "caixa"}
                     disabled={!loaded || !!error}
                     onClick={() => {
                       setFormError("");
@@ -1192,7 +1198,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                 </div>
               ) : (
                 <>
-                  {closed && (
+                  {closed && !round?.operation && (
                     <div className="closedbar">
                       <Check size={18} />
                       <span>
@@ -1214,6 +1220,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                       )}
                     </div>
                   )}
+                  {(!round || round.operation) && <SeasonWorkspace state={data} round={round} screen={screen} actor={actor} version={version} now={now} busy={busy} error={formError} save={save} onDirty={markDirty} onNavigate={go} onNewWeek={() => open({ kind: "round" })} previewOnly={previewOnly} />}
                   <Management
                     screen={screen}
                     state={data}
@@ -1240,7 +1247,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                       go("hoje");
                     }}
                   />
-                  {round?.returnMode !== "feira" && (
+                  {round?.returnMode !== "feira" && !round?.operation && (
                     <div hidden={screen !== "feiras"}>
                       <Markets
                         state={data}
@@ -1587,6 +1594,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                       <div className="historylist">
                         {[...data.rounds].reverse().map((r) => {
                           const k = stats(r, data);
+                          if (r.operation) return <div key={r.id} className="ow"><h3>{dateText(r.start)} — {dateText(r.end)}</h3><WeekSummary round={r} /><button className="btn secondary" onClick={() => { if (managementDirty) { toast.warning("Salve ou descarte o rascunho antes de trocar a semana."); return; } setRoundId(r.id); go("feiras"); }}>Abrir semana</button></div>;
                           return (
                             <article key={r.id}>
                               <div>
@@ -1683,6 +1691,7 @@ function BetoApp({ previewOnly = false }: { previewOnly?: boolean }) {
                     </>
                   )}
                   <div hidden={screen !== "configurar"}>
+                    {admin && <PhotoTemplate state={data} save={save} busy={busy} error={formError} />}
                     {admin && (
                       <ProductionTemplate
                         state={data}
