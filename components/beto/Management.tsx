@@ -38,6 +38,7 @@ import type { Operation, Actor } from "@/lib/workflow";
 import { localClock } from "@/lib/workflow";
 import { FoodFace } from "./FoodCard";
 import { descriptions, flavorIndex } from "@/lib/flavor-identity";
+import { weekEstimate } from "@/lib/operation-domain";
 
 type Save = (op: Operation) => Promise<boolean>;
 type Common = {
@@ -162,7 +163,7 @@ export function Management({
 }) {
   return (
     <div className="management" data-area={screen}>
-      <div data-panel="hoje" hidden={screen !== "hoje"}>
+      {p.round && !p.round.operation && <div data-panel="hoje" hidden={screen !== "hoje"}>
         <Dashboard
           {...p}
           onNavigate={onNavigate}
@@ -170,15 +171,15 @@ export function Management({
           onExpense={onExpense}
           onSelectWeek={onSelectWeek}
         />
-      </div>
-      <div data-panel="producao" hidden={screen !== "producao"}>
+      </div>}
+      {p.round && !p.round.operation && <div data-panel="producao" hidden={screen !== "producao"}>
         <Production
           {...p}
           onConfigure={() => onNavigate("configurar")}
           onDirty={(dirty) => p.onDirty(dirty, "production")}
           onNewWeek={onNewWeek}
         />
-      </div>
+      </div>}
       <div data-panel="caixa" hidden={screen !== "caixa"}>
         <Finance
           {...p}
@@ -1231,6 +1232,7 @@ export function WeeklyReturns({
   );
 }
 function pastelEstimate(state: State, round?: Round) {
+  if (round?.operation) { const m = weekEstimate(round)!; return round.operation.closing ? { min: m.value, max: m.value, missing: m.partial } : null; }
   if (!round?.weeklyReturn?.closed) return null;
   let min = 0,
     max = 0,
@@ -1437,7 +1439,7 @@ function Finance({
               </section>
               <section className="m-estimate">
                 <h2>Referência dos pastéis</h2>
-                {est && !est.missing ? (
+                {est && (!est.missing || round.operation) ? (
                   <>
                     <strong>
                       {est.min === est.max
@@ -1445,9 +1447,7 @@ function Finance({
                         : moneyText(est.min) + " a " + moneyText(est.max)}
                     </strong>
                     <p>
-                      Faturamento estimado pela produção e pelas sobras. A faixa
-                      usa os preços das três feiras; não há venda exata por
-                      feira na contagem semanal.
+                      {round.operation ? `Vendas estimadas pela distribuição, sobras e preços de cada feira.${est.missing ? " Subtotal parcial: há preços, extras ou distribuição pendentes." : ""}` : "Faturamento estimado pela produção e pelas sobras. A faixa usa os preços das três feiras; não há venda exata por feira na contagem semanal."}
                     </p>
                   </>
                 ) : (
